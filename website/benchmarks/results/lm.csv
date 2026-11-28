@@ -1,0 +1,3 @@
+"expression","min","median","mem_alloc"
+"lm()","974.3ms"," 1.05s","NA"
+"lm_xtx()"," 29.9ms","34.98ms","NA"

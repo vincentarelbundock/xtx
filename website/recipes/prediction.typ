@@ -16,7 +16,7 @@ options(width = 200)
 
 #title()
 
-These recipes compute predictions from a fitted model and their standard errors. Both build the design for the new data from the model's own encoding, so they rely on #link("../operations.html#reusing-a-design-on-new-data")[reusing a design on new data]. Each one checks a small example against base R, then times both on 200,000 rows and 119 columns, on one thread.
+These recipes compute predictions from a fitted model and their standard errors. Both build the design for the new data from the model's own encoding, so they rely on #link("algebra.html#reusing-a-design-on-new-data")[reusing a design on new data]. Each one checks a small example against base R, then times both on 200,000 rows and 119 columns, on one thread.
 
 ```r
 library(xtx)
@@ -27,7 +27,7 @@ d <- data.frame(
     cl = c(1, 1, 2, 2, 3, 3, 4, 4))
 ```
 
-The benchmarks run on top of the #link("../operations.html#data")[benchmark setup], in a fresh R process each.
+The benchmarks run on top of the #link("../benchmarks.html#setup")[benchmark setup], in a fresh R process each.
 
 = Predictions
 

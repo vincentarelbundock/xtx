@@ -33,8 +33,10 @@ bench-quick: install install-fit ## Quick check of every published benchmark; re
 	BENCH_SIZE=quick Rscript website/benchmarks/run.R $(B)
 	BENCH_SIZE=quick ./bench/ols/run.sh
 
+# DUCKDB_R_HOME: duckdb's own default folder, named explicitly so that it
+# does not print a notice about it (with its path) in the output of the pages.
 website: install install-fit reference ## Build the site into _site/
-	calepin compile website _site
+	DUCKDB_R_HOME=$$HOME/.duckdb calepin compile website _site
 
 serve: ## Serve the built site
 	calepin serve _site --open

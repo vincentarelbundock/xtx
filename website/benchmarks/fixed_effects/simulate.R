@@ -22,11 +22,11 @@ d[[paste0("y_", kmax)]] <- d$y
 for (k in setdiff(ks, kmax)) {
     dk <- dgp(n, type, k)
     # The regressors and the ids do not depend on k (only the response does)
-    for (v in c(paste0("x", seq_len(k)), "indiv_id", "year", "firm_id")) stopifnot(identical(dk[[v]], d[[v]]))
+    for (v in c(paste0("x", seq_len(k)), fe_ids(type))) stopifnot(identical(dk[[v]], d[[v]]))
     d[[paste0("y_", k)]] <- dk$y
     rm(dk)
 }
-d <- d[c(paste0("y_", ks), paste0("x", seq_len(kmax)), "indiv_id", "year", "firm_id")]
+d <- d[c(paste0("y_", ks), paste0("x", seq_len(kmax)), fe_ids(type))]
 
 con <- DBI::dbConnect(duckdb::duckdb())
 duckdb::duckdb_register(con, "d", d)

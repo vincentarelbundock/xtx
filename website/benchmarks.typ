@@ -1,0 +1,112 @@
+#import "/.calepin/calepin.typ" as calepin
+#show: calepin.document
+
+#set document(title: [Benchmarks])
+#metadata((title: "Benchmarks")) <website-metadata>
+
+#import "/benchmarks/bench.typ": bench, bench-table, bench-code
+
+#calepin.setup(echo: true, eval: true, results: "verbatim", warning: false, message: false)
+
+#title()
+
+How much time does it save to skip the dense model matrix? This page times six common operations twice: once with base R, which builds the full matrix first, and once with `xtx`, which works from the design matrix instead. The data have 200,000 rows, the model matrix has 119 columns, and everything runs on one thread.
+
+Each operation is timed in two situations:
+
+- *From a data frame.* The matrix is built and then used once, as when predicting on a new batch of data.
+- *From a prebuilt design matrix.* The matrix already exists and only the operation is timed, as when the same matrix is used again and again. Base R starts from its own prebuilt dense matrix.
+
+Shorter bars are better.
+
+#calepin.chunk(
+  echo: false,
+  results: "render",
+  fig-width: "100%",
+  fig-device-width: 10,
+  fig-device-height: 7.5,
+  fig-alt-text: "Bar chart of the median time in milliseconds of six operations (building the matrix, matrix product, crossprod with a vector, crossprod, weighted group sums, quadratic diagonal), for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix.",
+)[
+```r
+library(ggplot2)
+# Each results file has base R then xtx, starting from the data, then (but
+# for the construction) the same two from a prebuilt matrix
+ops <- c(construction = "Build the matrix", matmul = "%*%", crossprod_w = "crossprod(D, w)",
+         crossprod = "crossprod(D)", colsums = "colSums(w * D, group = )", quadratic = "quadratic_diagonal()")
+ms <- function(x) {
+    x <- trimws(x)
+    as.numeric(sub("[^0-9.]+$", "", x)) * c(ns = 1e-6, "µs" = 1e-3, us = 1e-3, ms = 1, s = 1e3, m = 6e4)[sub("^[0-9.]+", "", x)]
+}
+res <- do.call(rbind, lapply(names(ops), function(f) {
+    r <- read.csv(file.path("benchmarks", "results", paste0(f, ".csv")), colClasses = "character")
+    data.frame(operation = ops[[f]], ms = ms(r$median),
+               package = rep(c("Base R, dense matrix", "xtx, design matrix"), length.out = nrow(r)),
+               start = rep(c("From a data frame", "From a prebuilt design matrix"), each = 2)[seq_len(nrow(r))])
+}))
+res$operation <- factor(res$operation, rev(unname(ops)))
+res$start <- factor(res$start, c("From a data frame", "From a prebuilt design matrix"))
+res$package <- factor(res$package, c("xtx, design matrix", "Base R, dense matrix"))
+res$label <- paste(format(signif(res$ms, 3), big.mark = ",", drop0trailing = TRUE, trim = TRUE), "ms")
+ggplot(res, aes(ms, operation, fill = package)) +
+    geom_col(position = position_dodge(width = 0.75), width = 0.7) +
+    geom_text(aes(label = label), position = position_dodge(width = 0.75), hjust = -0.1, size = 4.2, colour = "grey30") +
+    facet_wrap(~ start, scales = "free_x") +
+    scale_x_continuous(expand = expansion(mult = c(0, 0.22))) +
+    scale_fill_manual(values = c("xtx, design matrix" = "#18756d", "Base R, dense matrix" = "#ad481e"),
+                      breaks = c("Base R, dense matrix", "xtx, design matrix")) +
+    labs(x = "Median time, milliseconds", y = NULL, fill = NULL) +
+    theme_minimal(base_size = 16) +
+    theme(legend.position = "top", legend.justification = "left",
+          panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
+          panel.spacing = unit(1.5, "lines"),
+          strip.text = element_text(face = "bold", hjust = 0),
+          axis.text.y = element_text(family = "mono", colour = "grey20"),
+          axis.title = element_text(colour = "grey35"))
+```
+]
+
+For `crossprod(D)`, the design matrix adds up the products of each row's few non-zero entries, instead of all `p^2 / 2` products of the dense row. For `quadratic_diagonal()`, base R builds an `n` by `p` intermediate, where the kernel touches only the non-zero entries of each row. Examples and benchmarks of threads, reuse on new data, sparse matrices and repeated rows are in the #link("recipes/algebra.html")[Algebra recipes].
+
+Other pages have their own benchmarks: #link("fit/fixed_effects.html")[fixed effects], #link("fit/lm_xtx.html#least-squares-with-qr")[least squares], #link("fit/leverage.html")[leverage], #link("fit/standard_errors.html")[standard errors] and #link("recipes/prediction.html")[predictions].
+
+= Setup
+
+The benchmarks of this site run on this data, with one thread unless stated otherwise. `X` and `DX` are prebuilt dense and design matrices, and `same()` and `close()` are the checks for exact and approximate results. Each benchmark runs in a fresh R process on top of this setup; the results shown were saved by `make bench` (see #link("https://github.com/vincentarelbundock/xtx/tree/main/website/benchmarks")[`website/benchmarks`]).
+
+The benchmark tables report minimum and median elapsed time and `mem_alloc`, the total bytes allocated on the R heap during one evaluation. Reproducing the memory column requires an R build with `capabilities("profmem")` enabled. For fair comparisons with functions that call `model.matrix()`, the benchmarks set `options(xtx.skip_na_copy = FALSE)`, so that the model frame is built in exactly the same way (by default, `xtx` skips a copy of the frame that `na.omit()` makes even when no row has a missing value).
+
+= Code
+
+These are the scripts themselves, read from `website/benchmarks/` when the site is built. `run.R` runs each benchmark in a fresh R process, on top of `setup.R`, and saves its results as a CSV file, which the chart above reads.
+
+`setup.R`:
+
+#bench-code("setup")
+
+`construction.R`:
+
+#bench-code("construction")
+
+`matmul.R`:
+
+#bench-code("matmul")
+
+`crossprod_w.R`:
+
+#bench-code("crossprod_w")
+
+`crossprod.R`:
+
+#bench-code("crossprod")
+
+`colsums.R`:
+
+#bench-code("colsums")
+
+`quadratic.R`:
+
+#bench-code("quadratic")
+
+`run.R`:
+
+#bench-code("run")

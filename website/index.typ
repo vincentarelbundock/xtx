@@ -17,9 +17,13 @@ options(width = 200)
 
 #title()
 
-The `xtx` package builds model matrices that are identical, bit for bit, to those returned by `stats::model.matrix()`. Its main benefit comes when the dense model matrix is only an intermediate input to something else: least squares coefficients need `X'X` and `X'y`, predictions multiply it by a vector of coefficients, their standard errors need a quadratic form, and cluster-robust variances need weighted sums of its rows by group. `xtx` computes these results directly from the factor codes and numeric variables, without materializing the dense matrix, which often saves an order of magnitude or more in both time and memory. When the dense matrix itself is what you need, there is no step to skip, and the gains are much smaller.
+The `xtx` package builds model matrices that are identical, bit for bit, to those returned by `stats::model.matrix()`, and computes products, sums and quadratic forms of them without forming the dense matrix. It is an extremely fast way to compute design matrices and compute standard `X'X`-style transformations, both in and out of memory.
 
-Use `xtx` when you have a formula (or fitted model) and data, and you need the model matrix only on the way to something else, so that allocating, filling, and storing it would be wasted work. If you already have the dense matrix `X`, use it directly.
+- *In or out of memory.* The same calls run on data frames, DuckDB tables and Parquet files, with the same results in memory and in the database.
+- *Speed.* Products, least squares inputs, predictions and robust variances are computed directly from the factor codes and numeric variables, which often saves an order of magnitude or more in time.
+- *Memory.* The design stores only the codes, the numeric variables and the contrast matrices, which can take much less memory than the dense matrix.
+
+Use `xtx` when the model matrix is only an intermediate input to something else. When the dense matrix itself is what you need, there is no step to skip, and the gains are small. If you already have the dense matrix `X`, use it directly.
 
 = Installation
 
@@ -29,9 +33,24 @@ Use `xtx` when you have a formula (or fitted model) and data, and you need the m
 remotes::install_github("vincentarelbundock/xtx")
 ```
 
+= Example
+
+Build a design with an intercept, a numeric predictor, and a two-level factor. Multiplying it by a coefficient vector gives one linear prediction per row.
+
+```r
+library(xtx)
+
+d <- data.frame(x = c(1, 2, 3), group = factor(c("a", "b", "a")))
+D <- design_matrix(~ x + group, d)
+beta <- c("(Intercept)" = 10, x = 2, groupb = -1)
+drop(D %*% beta)
+```
+
+More examples: #link("recipes/algebra.html")[Algebra] (products, `crossprod()`, `qr()`, sparse matrices, new data), #link("recipes/prediction.html")[Prediction], #link("fit/lm_xtx.html")[Model fitting], #link("out-of-core.html")[Out-of-core data] (DuckDB and Parquet), and #link("recipes/package-developers.html")[Package developers] (building estimators from the primitives).
+
 = Performance
 
-How much time can you save when predicting on a new batch? The plot compares two numeric predictors with a numeric predictor interacting with a 20-level factor. Both methods reuse the fitted model's terms, factor coding, and coefficients. Timing starts after one-time setup and includes multiplying by the coefficients. The package uses one thread.
+The plot compares prediction time on new batches of rows for two numeric predictors and for a numeric predictor interacting with a 20-level factor. Both methods reuse the fitted model's terms, factor coding, and coefficients. Timing starts after one-time setup and includes multiplying by the coefficients. The package uses one thread.
 
 #calepin.chunk(
   echo: false,
@@ -56,62 +75,28 @@ ggplot(times, aes(rows, ms, colour = method)) +
 ```
 ]
 
-The plot measures only time, and only for predictions. The savings extend to memory and to other common tasks. On data with 200,000 rows and 119 columns, on one thread:
+The table covers time and memory for other tasks, on data with 200,000 rows and 119 columns, on one thread:
 
 #bench-table("summary", code-column: false)
 
-Each of these tasks uses the model matrix only as an intermediate input, so `xtx` never forms it. When you do need the dense matrix, `xtx` returns the identical matrix at about the same speed on one thread and about twice as fast on four threads, but it takes the same memory. The #link("operations.html")[Operations] page gives the details.
+When you do need the dense matrix, `xtx` returns the identical matrix at about the same speed on one thread and about twice as fast on four threads, but it takes the same memory. The #link("operations.html")[Operations] page and the #link("fit/fixed_effects.html")[fixed effects benchmark] give the details.
 
-= Promises
+= Guarantees
 
-+ *Exact.* Model matrices and those from `model.matrix()` pass `identical(a, b, num.eq = FALSE, single.NA = FALSE, attrib.as.set = FALSE)`, the strictest comparison R offers: same bits (signed zeros and `NA`/`NaN` payloads included), attributes in the same order, and the same warnings and errors, for any number of threads.
-+ *New data.* A design built from a fitted model uses the same columns, factor coding, and transformations that the model uses for prediction.
-+ *Algebra.* Products and sums computed without the dense matrix agree with the dense computation up to floating point rounding, with `NA` and `NaN` in the same places.
-+ *Sparse.* Sparse model matrices hold the same non-zero values as the dense ones, bit for bit.
+#table(
+  columns: (auto, 1fr),
+  align: (left, left),
+  [*Exact*], [Model matrices pass `identical(a, b, num.eq = FALSE, single.NA = FALSE, attrib.as.set = FALSE)` against `model.matrix()`: same bits (signed zeros and `NA`/`NaN` payloads included), attributes in the same order, and the same warnings and errors, for any number of threads.],
+  [*New data*], [A design built from a fitted model uses the same columns, factor coding, and transformations that the model uses for prediction.],
+  [*Algebra*], [Products and sums computed without the dense matrix agree with the dense computation up to floating point rounding, with `NA` and `NaN` in the same places.],
+  [*Sparse*], [Sparse model matrices hold the same non-zero values as the dense ones, bit for bit.],
+)
 
 The test suite checks these on hundreds of random formulas and data sets.
 
-= How it works
+= Model fitting
 
-Under the hood, a design matrix stores only the factor codes, the numeric variables and the contrast matrices, which can take much less memory than the dense matrix. Products, sums and quadratic forms are computed by C kernels that read each row's few non-zero entries straight from these inputs, optionally on several threads, and rows with identical inputs can be computed once. When the dense matrix is needed, it is filled by a multi-threaded port of R's own C routine.
-
-= Simple example
-
-Build a design with an intercept, a numeric predictor, and a two-level factor. Multiplying it by a coefficient vector gives one linear prediction per row.
-
-```r
-library(xtx)
-
-d <- data.frame(x = c(1, 2, 3), group = factor(c("a", "b", "a")))
-D <- design_matrix(~ x + group, d)
-beta <- c("(Intercept)" = 10, x = 2, groupb = -1)
-drop(D %*% beta)
-
-newdata <- data.frame(x = c(4, 5), group = "a")
-D_new <- design_matrix(D, newdata)
-drop(D_new %*% beta)
-```
-
-= Model fitting: xtx.fit
-
-The companion package `xtx.fit` (#link("https://github.com/vincentarelbundock/xtx.fit")[GitHub]) fits linear and generalized linear models on these designs, with or without absorbed fixed effects: `lm_xtx()` and `glm_xtx()` give the results of `lm()`, `glm()` and `fixest` without the dense model matrix. It is pure R, built on the exported functions of `xtx`. Install both with `remotes::install_github("vincentarelbundock/xtx")` and `remotes::install_github("vincentarelbundock/xtx.fit")`. The #link("recipes/estimation.html")[Estimation] recipe and the reference pages of `xtx.fit` show it at work.
-
-= Data in memory or in a database
-
-The same code works on data frames, DuckDB tables and Parquet files: give a connection and a table instead of a data frame, and the products, and the fits of `xtx.fit` (`lm_xtx()`, `glm_xtx()`, fixed effects), run in the database, with the same results as in memory.
-
-```r
-#| eval: false
-library(xtx.fit)
-con <- DBI::dbConnect(duckdb::duckdb())
-DBI::dbWriteTable(con, "d", d)
-lm_xtx(y ~ x + f, d)                        # a data frame
-lm_xtx(y ~ x + f, con, table = "d")         # the same fit, in DuckDB
-glm_xtx(k ~ x + f, poisson, con, table = "d")
-lm_xtx(y ~ x | firm, con, table = "d", vcov = ~firm)
-```
-
-The #link("recipes/out-of-core.html")[Out-of-core data] recipe runs every call on both backends side by side (#link("recipes/out-of-core.html#one-code-two-backends")[One code, two backends]) and describes the remote designs.
+The companion package `xtx.fit` (#link("https://github.com/vincentarelbundock/xtx.fit")[GitHub]) fits linear and generalized linear models on these designs, with or without absorbed fixed effects, in memory or in DuckDB. `lm_xtx()` and `glm_xtx()` give the results of `lm()`, `glm()` and `fixest` without the dense model matrix. It is built on the exported functions of `xtx`. Install it with `remotes::install_github("vincentarelbundock/xtx.fit")`.
 
 = Setup
 

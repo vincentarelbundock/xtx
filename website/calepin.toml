@@ -31,28 +31,43 @@ fold = true
   target = "operations.typ"
 
   [[sidebar.section.item]]
-  target = "architecture.typ"
+  target = "benchmarks.typ"
 
   [[sidebar.section.item]]
-  target = "primitives.typ"
+  target = "out-of-core.typ"
+
+  [[sidebar.section.item]]
+  target = "architecture.typ"
 
 [[sidebar.section]]
 title = "Recipes"
 
   [[sidebar.section.item]]
+  target = "recipes/algebra.typ"
+
+  [[sidebar.section.item]]
   target = "recipes/prediction.typ"
 
   [[sidebar.section.item]]
-  target = "recipes/out-of-core.typ"
+  target = "recipes/package-developers.typ"
 
 [[sidebar.section]]
-title = "xtx.fit: model fitting"
+title = "xtx.fit"
 
   [[sidebar.section.item]]
-  target = "recipes/estimation.typ"
+  target = "fit/lm_xtx.typ"
 
   [[sidebar.section.item]]
-  target = "benchmarks/fixed_effects.typ"
+  target = "fit/glm_xtx.typ"
+
+  [[sidebar.section.item]]
+  target = "fit/fixed_effects.typ"
+
+  [[sidebar.section.item]]
+  target = "fit/leverage.typ"
+
+  [[sidebar.section.item]]
+  target = "fit/standard_errors.typ"
 
 [[sidebar.section]]
 title = "Reference: xtx"

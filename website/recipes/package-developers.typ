@@ -1,8 +1,8 @@
 #import "/.calepin/calepin.typ" as calepin
 #show: calepin.document
 
-#set document(title: [Primitives for package developers])
-#metadata((title: "Primitives for package developers")) <website-metadata>
+#set document(title: [Building estimators])
+#metadata((title: "Building estimators")) <website-metadata>
 
 #calepin.setup(echo: true, eval: true, results: "verbatim", warning: false, message: false)
 
@@ -14,21 +14,7 @@ options(width = 200)
 
 #title()
 
-An estimator written with a few exported functions runs unchanged on a data frame and on a database table. The building blocks are the design and its products (`design_matrix()`, `%*%`, `crossprod()`, `colSums(group = )`, `quadratic_diagonal()`), *columns*, which hold one value per row, and base R arithmetic on columns. In memory a column is a numeric vector. For a remote design it is a `design_column`: a lazy SQL expression over the rows, which nothing evaluates until a sum, a product or `as.vector()` asks for its values. Only small results (numbers, $p times p$ matrices, one row per cluster) come back to R.
-
-Remote examples need the DBI and duckdb packages.
-
-#table(
-  columns: 2,
-  [*Task*], [*Functions*],
-  [Designs and products], [`design_matrix()`, `D %*% b`, `crossprod(D)`, `crossprod(D, col)`, `crossprod(D, w * D)`, `colSums(e * D, group = )`, `quadratic_diagonal(D, V)`],
-  [Columns], [`design_column(D, "y")`, arithmetic, comparisons, `exp()`, `log()`, `round()`, `lgamma()`, `is.na()`, ...],
-  [Combining columns], [`col_ifelse()`, `col_pmin()`, `col_pmax()`],
-  [Summaries], [`sum()`, `mean()`, `min()`, `max()`, `range()`, `any()`, `all()`, `col_sums()` (several sums, one query)],
-  [Values], [`as.vector()`, `as.matrix()`, `as.data.frame(keep = )`, `col_compute()` (a temporary table, or a permanent one with `name =`)],
-  [Groupings], [`design_groups()`, `group_sums()`, `group_crosstab()`, `group_lookup()`, `group_nested()`],
-  [Compression], [`design_patterns()`],
-)
+These recipes build estimators from the #link("../operations.html#columns")[columns and groupings]. Each one is written once and runs on a data frame and on a database table. The remote examples need the DBI and duckdb packages.
 
 = Data
 
@@ -128,19 +114,11 @@ rbind(ols = b0, huber = step_db$coef,
       clean = coef(lm(y ~ x + f, d[-out, ])))
 ```
 
-= Groupings
+= The within transformation
 
-Fixed-effect estimators work from *groupings*: each row gets the number $1..G$ of its group, from the values of one or more key variables. Five functions cover them:
+Fixed-effect estimators work from groupings, described in #link("../operations.html#groupings")[Operations].
 
-- `design_groups(D, key)` makes the grouping of the rows of `D` by `key`;
-- `group_sums(col, g)`: the sums of a column (or several) within each group, a $G times k$ matrix, one query remotely; `group_sums(1, g)` counts the rows of each group;
-- `group_crosstab(g1, g2, w)`: the (weighted) number of rows in each pair of groups, a sparse $G_1 times G_2$ matrix;
-- `group_lookup(values, g)`: the column whose value in a row is the value of its group, `values[codes]`;
-- `group_nested(g1, g2)`: whether each group of `g1` lies within one group of `g2`.
-
-A grouping is a list with `codes` (the group of each row: an integer vector in memory, a `design_column` remotely), `G` (the number of groups), `levels` (a data frame of the key values of each group, in code order, sorted as the levels of fixed effects), `n` (the number of rows) and `design`. Results with one row per group are in code order: row `l` is `g$levels[l, ]`. Every row must have a group: a missing key (`NA`, `NaN`, SQL `NULL`) is an error on both backends, so select the rows with a key first (remotely `D[DBI::SQL("cl IS NOT NULL"), ]`).
-
-The within (one-way fixed effect) slope of `y` on `x` demeans both columns by cluster, $tilde(y) = y - group_lookup(group_sums(y, g) / n_g, g)$, and regresses one on the other. The key is given as in the clustered example: in memory by its values, remotely by the name of a column.
+The within (one-way fixed effect) slope of `y` on `x` demeans both columns by cluster, $tilde(y) = y - "group_lookup"("group_sums"(y, g) \/ n_g, g)$, and regresses one on the other. The key is given as in the clustered example: in memory by its values, remotely by the name of a column. `g$G` is the number of groups and `g$levels` the key values of each group, in code order.
 
 ```r
 within_slope <- function(D, g) {
@@ -161,9 +139,9 @@ c(memory = within_slope(D_mem, g_mem), duckdb = within_slope(D_db, g_db),
 all.equal(within_slope(D_mem, g_mem), within_slope(D_db, g_db))
 ```
 
-= Columns are lazy
+= Lazy columns
 
-Printing a remote column shows its dimensions ($n times k$, as `dim()`) and its SQL, without reading a row. Arithmetic builds a new expression, and the values are computed only when a summary, a product or `as.vector()` needs them:
+Printing a remote column shows its dimensions and its SQL, without reading a row. Arithmetic builds a new expression, and the values are computed only when a summary, a product or `as.vector()` needs them.
 
 ```r
 y <- design_column(D_db, "y")
@@ -174,7 +152,7 @@ c(sum = sum(z), sum_na_rm = sum(z, na.rm = TRUE), mean = mean(z, na.rm = TRUE))
 head(as.data.frame(round(r, 2), keep = "id", nm = "resid"))
 ```
 
-Missing values follow R: SQL `NULL` is `NA` and `NaN` stays `NaN`, `is.na()` is true for both, and `sum()`, `mean()`, `min()` and the other summaries give `NA` where base R does, with `na.rm = TRUE` dropping both. Columns of one design combine with each other, also when they come from separate products, read or not (a product read on its own is made again, as one more view, where it is combined); columns of two designs do not, nor do two columns stored separately with `col_compute()`. A column is valid while its connection is open.
+The connection stays open while columns are in use. Close it at the end.
 
 ```r
 DBI::dbDisconnect(con)

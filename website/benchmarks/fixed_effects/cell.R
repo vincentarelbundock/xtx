@@ -1,7 +1,7 @@
 # One cell of the fixed-effects benchmark (see ../fixed_effects.R), in a fresh
 # R process:
 #
-#   Rscript cell.R <package> <data.parquet> <dgp> <nfe> <k> <limit> <out.csv>
+#   Rscript cell.R <package> <data.parquet> <dgp> <k> <limit> <out.csv>
 #
 # Reads the data that simulate.R saved (dgp.R): into a data frame for the
 # in-memory packages, or as a DuckDB view that queries the Parquet file for
@@ -18,13 +18,12 @@ source(file.path(here, "dgp.R"))
 package <- args[1]
 path <- args[2]
 dgp_type <- args[3]
-nfe <- as.integer(args[4])
-k <- as.integer(args[5])
-limit <- as.numeric(args[6])
-out <- args[7]
+k <- as.integer(args[4])
+limit <- as.numeric(args[5])
+out <- args[6]
 
 xs <- paste0("x", seq_len(k))
-f <- fe_formula(k, nfe)
+f <- fe_formula(dgp_type, k)
 
 # The data: DuckDB runs on one thread, as every package below
 remote <- package %in% c("lm_xtx (DuckDB)", "dbreg (DuckDB)")
@@ -34,11 +33,11 @@ if (remote) {
     suppressMessages({
         con <- DBI::dbConnect(duckdb::duckdb())
         DBI::dbExecute(con, "SET threads = 1")
-        DBI::dbExecute(con, paste("CREATE VIEW d AS", fe_sql(path, k)))
+        DBI::dbExecute(con, paste("CREATE VIEW d AS", fe_sql(path, dgp_type, k)))
     })
     nrows <- DBI::dbGetQuery(con, "SELECT count(*) AS n FROM d")$n
 } else {
-    d <- fe_read(path, k)
+    d <- fe_read(path, dgp_type, k)
     nrows <- nrow(d)
 }
 
@@ -58,7 +57,7 @@ suppressPackageStartupMessages(switch(package,
     "dbreg (DuckDB)" = {
         library(dbreg)
         # The default (100 iterations of alternating projections) stops with
-        # an error on the difficult design with three fixed effects.
+        # an error on round robin.
         options(dbreg.ap_max_iter = 1e4)
     },
     stop("unknown package: ", package)))
@@ -79,7 +78,7 @@ status_mb <- function(field) {
 # One row of results, written to a temporary file then renamed, so that a
 # process stopped while writing never leaves a truncated <out.csv>.
 save_row <- function(...) {
-    row <- data.frame(package = package, dgp = dgp_type, n = nrows, nfe = nfe, k = k, ...)
+    row <- data.frame(package = package, dgp = dgp_type, n = nrows, k = k, ...)
     part <- paste0(out, ".part")
     write.csv(row, part, row.names = FALSE)
     invisible(file.rename(part, out))

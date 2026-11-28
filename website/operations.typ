@@ -4,7 +4,6 @@
 #set document(title: [Operations])
 #metadata((title: "Operations")) <website-metadata>
 
-#import "/benchmarks/bench.typ": bench, bench-table, bench-code
 
 #calepin.setup(echo: true, eval: true, results: "verbatim", warning: false, message: false)
 
@@ -16,193 +15,103 @@ options(width = 200)
 
 #title()
 
-Each section shows a small example, checked with `identical()` when the result is exact and with `all.equal()` when sums run in a different order, followed by a benchmark on medium-sized data (200,000 rows, 119 columns). The relative costs depend on the size and structure of the design.
-
-= Data
-
-The small examples use this data frame:
-
-```r
-library(xtx)
-d <- data.frame(
-    y = c(0.3, -1.2, 0.8, 1.5, -0.4, 0.9, -2.1, 0.2),
-    x = c(-1.5, 0.2, 1.1, -0.3, 2.0, 0.7, -0.9, 1.4),
-    f = factor(c("a", "b", "c", "a", "b", "c", "a", "b")),
-    cl = c(1, 1, 2, 2, 3, 3, 4, 4))
-```
-
-The benchmarks use this one, with one thread unless stated otherwise. `X` and `DX` are prebuilt dense and design matrices, and `same()` and `close()` are the checks for exact and approximate results. Each benchmark runs in a fresh R process on top of this setup; the results shown were saved by `make bench` (see #link("https://github.com/vincentarelbundock/xtx/tree/main/website/benchmarks")[`website/benchmarks`]).
-
-#bench-code("setup")
-
-The benchmark tables report minimum and median elapsed time and `mem_alloc`, the total bytes allocated on the R heap during one evaluation. Reproducing the memory column requires an R build with `capabilities("profmem")` enabled. For fair comparisons with functions that call `model.matrix()`, the benchmarks set `options(xtx.skip_na_copy = FALSE)`, so that the model frame is built in exactly the same way (by default, `xtx` skips a copy of the frame that `na.omit()` makes even when no row has a missing value).
+This page lists what you can do with a design matrix, with columns and with groupings. The #link("recipes/algebra.html")[Algebra recipes] check each result against base R, and #link("benchmarks.html")[Benchmarks] times the operations.
 
 = Building designs
 
-== `design_matrix()`
+A design matrix holds the prepared variables and the layout of the columns, but not the dense matrix. `as.matrix()` builds the latter, which defers the cost of allocating and filling it.
 
-A design matrix holds the prepared variables and the layout of the columns, but not the dense matrix. `as.matrix()` builds the latter.
+#table(
+  columns: (auto, 1fr, auto),
+  [*Operation*], [*What it computes*], [*Usage*],
+  [`design_matrix()`], [A design from a formula and data, without the dense matrix. Same columns as `model.matrix()`.], [`design_matrix(y ~ x * f, d)`],
+  [`as.matrix()`], [The dense matrix, identical to `model.matrix()`.], [`as.matrix(D)`],
+  [Threads], [Writing the dense output can use several threads. The option takes an integer, `0` for all available threads, or a fraction of them; the default is half.], [`options(xtx.threads = 4)`],
+  [New data], [The design of new rows, encoded as the training rows were: same `poly()` basis, same factor levels.], [`design_matrix(D, nd)`],
+  [Fitted model], [The same, from a fitted model.], [`design_matrix(fit, newdata = nd)`],
+  [Specification], [Prepare once, then reuse for each batch of new data.], [`spec <- design_matrix(fit, newdata = NULL)`],
+  [Sparse matrix], [A `CsparseMatrix` without forming the dense matrix, identical to converting the dense one.], [`as(D, "CsparseMatrix")`],
+  [Repeated rows], [Computes once per distinct row and reuses the result. Row-wise results stay identical bit for bit. The option is `"auto"` (default), `TRUE` or `FALSE`.], [`options(xtx.dedup = "auto")`],
+)
 
-```r
-D <- design_matrix(y ~ x * f, d)
-D
-
-a <- model.matrix(y ~ x * f, d)
-b <- as.matrix(D)
-identical(a, b, num.eq = FALSE)
-```
-
-Building the design defers the cost of allocating and filling the dense matrix until `as.matrix()` is called; the next section times that step.
-
-#bench("construction")
-
-== Using multiple threads with `as.matrix()`
-
-Writing the dense output accounts for much of the work in both implementations. Additional threads can speed things up (set with `options(xtx.threads = )`: an integer, `0` for all available threads, or a fraction of them; the default is half). The memory column includes both the dense output and temporary allocations made while building it.
-
-#bench("threads")
-
-== Reusing a design on new data
-
-To make predictions, new rows must be turned into columns exactly as the training rows were. Here, `poly(x, 2)` must use the training polynomial, and `f` must keep one column per training level even though the new data only contain `"b"`. Pass the training design and the new data to `design_matrix()`, then use `as.matrix()` to display the columns.
-
-```r
-D <- design_matrix(y ~ poly(x, 2) + f, d)
-nd <- data.frame(x = c(0, 1), f = "b")
-as.matrix(design_matrix(D, nd))
-```
-
-A fitted model works too, and gives the same result:
-
-```r
-fit <- lm(y ~ poly(x, 2) + f, d)
-identical(as.matrix(design_matrix(D, nd)), as.matrix(design_matrix(fit, newdata = nd)), num.eq = FALSE)
-```
-
-When you have many batches, prepare once with `spec <- design_matrix(fit, newdata = NULL)`, then call `design_matrix(spec, batch)` for each batch. The benchmark below does this for a 100-row batch.
-
-#bench("reuse")
+Examples and benchmarks of threads, #link("recipes/algebra.html#reusing-a-design-on-new-data")[reuse on new data], #link("recipes/algebra.html#sparse-matrices")[sparse matrices] and #link("recipes/algebra.html#repeated-rows")[repeated rows] are in the #link("recipes/algebra.html")[Algebra recipes].
 
 = Algebra
 
-== Arithmetic
+None of these forms the dense matrix.
 
-Multiply or divide a design matrix by a number to scale it, or by a vector to scale each row. You can also add or subtract two designs with matching rows and columns. The result is another design matrix.
+#table(
+  columns: (auto, 1fr, auto),
+  [*Operation*], [*What it computes*], [*Usage*],
+  [Arithmetic], [Scales a design by a number, or each row by a vector, and adds or subtracts two designs with matching rows and columns. The result is a design matrix.], [`c(1, 2) * D`],
+  [`%*%`], [`X B` from the factor codes and numeric variables. `B` can have several columns.], [`D %*% beta`],
+  [`crossprod()`], [`X'X`, as an ordinary matrix that goes straight to `chol()`, `chol2inv()`, `eigen()` or `solve()`.], [`crossprod(D)`],
+  [`crossprod()` with a vector], [`X'W`, such as `X'y` in least squares or weighted sums of the columns.], [`crossprod(D, w)`],
+  [`crossprod()` weighted], [The weighted `X'WX`.], [`crossprod(D, w * D)`],
+  [`qr()`], [A QR decomposition without forming `X` or `Q`. `R` is the Cholesky factor of `crossprod(D)`, pivoted as in `qr()` and `lm()`. Coefficients are refined from the residuals. Agrees with `qr(as.matrix(D))` up to rounding; signs of `R` and `Q` can differ, and `qr.Q()` and `qr.qty()` return only the first `rank` columns or rows. See #link("reference/design_qr.html")[`design_qr`].], [`qr(D)`],
+  [`qr` methods], [The usual functions accept the result: `qr.coef()`, `qr.fitted()`, `qr.resid()`, `qr.qty()`, `qr.qy()`, `qr.Q()`, `qr.R()` and `solve()`.], [`qr.coef(qr(D), y)`],
+  [`colSums()`, `colMeans()`], [Column sums and means. With one group label per row, one row per group, as with `base::rowsum()`. Group sums are a building block of cluster-robust standard errors and subgroup averages. Multiply by a vector first to weight the rows.], [`colSums(D, group = g)`],
+  [`rowSums()`, `rowMeans()`], [Row sums and means.], [`rowSums(D)`],
+  [`quadratic_diagonal()`], [The diagonal of `X V X'` without forming `X` or the `n` by `n` product. With `V` the variance-covariance matrix of the coefficients it holds the variance of each fitted value; with `V = solve(crossprod(X))`, the leverages.], [`quadratic_diagonal(D, V)`],
+)
 
-```r
-D <- design_matrix(~ x, data.frame(x = c(2, 3)))
-as.matrix(c(1, 2) * D)
-```
+The #link("recipes/algebra.html")[Algebra recipes] check each of these against base R. The #link("fit/lm_xtx.html#least-squares-with-qr")[`lm_xtx()` page] benchmarks `qr()` against other least squares implementations.
 
-== `%*%`
+= Columns
 
-`D %*% B` computes `X B` from the factor codes and numeric variables. `B` can have several columns.
+A column holds one value per row. In memory it is a numeric vector. For a remote design (a DuckDB table or Parquet files) it is a `design_column`: a lazy SQL expression over the rows, which nothing evaluates until a sum, a product or `as.vector()` asks for its values. Only small results (numbers, $p times p$ matrices, one row per cluster) come back to R. An estimator written with these functions and the products above runs unchanged on a data frame and on a database table: see #link("recipes/package-developers.html")[Building estimators] for worked examples.
 
-```r
-M <- model.matrix(y ~ x * f, d)
-D <- design_matrix(y ~ x * f, d)
-beta <- c(1, 0.5, -1, 2, 0.1, 0.3)
+#table(
+  columns: 2,
+  [*Task*], [*Functions*],
+  [Columns], [`design_column(D, "y")`, arithmetic, comparisons, `exp()`, `log()`, `round()`, `lgamma()`, `is.na()`, ...],
+  [Combining columns], [`col_ifelse()`, `col_pmin()`, `col_pmax()`],
+  [Summaries], [`sum()`, `mean()`, `min()`, `max()`, `range()`, `any()`, `all()`, `col_sums()` (several sums, one query)],
+  [Values], [`as.vector()`, `as.matrix()`, `as.data.frame(keep = )`, `col_compute()` (a temporary table, or a permanent one with `name =`)],
+  [Compression], [`design_patterns()` (a design and a response compressed to sufficient statistics)],
+)
 
-a <- M %*% beta
-b <- D %*% beta
-all.equal(a, b, check.attributes = FALSE)
-```
+== Remote columns are lazy
 
-The benchmarks in this section time each operation in two situations. Starting from the data, both sides build their matrix and then use it once, as when predicting on new data. Starting from a prebuilt matrix (`X` or `DX`), only the operation is timed, as when the same matrix is reused; the prebuilt design typically uses less memory than the dense matrix.
+A remote column is a SQL expression. These points hold for it, and the in-memory vector gives the same results.
 
-#bench("matmul")
+#table(
+  columns: 2,
+  [*Topic*], [*Behaviour*],
+  [Printing], [Shows the dimensions ($n times k$, as `dim()`) and the SQL, without reading a row.],
+  [Arithmetic], [Builds a new expression. The values are computed only when a summary, a product or `as.vector()` needs them.],
+  [Missing values], [Follow R: SQL `NULL` is `NA` and `NaN` stays `NaN`. `is.na()` is true for both. `sum()`, `mean()`, `min()` and the other summaries give `NA` where base R does, and `na.rm = TRUE` drops both.],
+  [Combining columns], [Columns of one design combine with each other, also when they come from separate products, read or not. A product read on its own is made again, as one more view, where it is combined.],
+  [What does not combine], [Columns of two designs, and two columns stored separately with `col_compute()`.],
+  [Validity], [A column is valid while its connection is open.],
+)
 
-== `crossprod()`
+The #link("recipes/package-developers.html#lazy-columns")[lazy columns] section of the recipes shows printing, missing values and `as.data.frame(keep = )` on a remote design.
 
-`crossprod(D, W)` computes `X'W`, such as `X'y` in least squares or weighted sums of the columns of `X`. `crossprod(D)` computes `X'X`, and `crossprod(D, w * D)` the weighted `X'WX`; both return ordinary matrices, which go straight to `chol()`, `chol2inv()`, `eigen()` or `solve()`.
+= Groupings
 
-```r
-w <- seq(-1, 1, length.out = 8)
+Fixed-effect estimators work from groupings: each row gets the number $1..G$ of its group, from the values of one or more key variables.
 
-a <- crossprod(M, w)
-b <- crossprod(D, w)
-all.equal(a, b, check.attributes = FALSE)
+#table(
+  columns: 3,
+  [*Function*], [*Returns*], [*Note*],
+  [`design_groups(D, key)`], [A grouping of the rows of `D` by `key`], [In memory the key is given by its values, remotely by the name of a column.],
+  [`group_sums(col, g)`], [A $G times k$ matrix of the sums of a column (or several) within each group], [One query remotely. `group_sums(1, g)` counts the rows of each group.],
+  [`group_crosstab(g1, g2, w)`], [A sparse $G_1 times G_2$ matrix], [The (weighted) number of rows in each pair of groups.],
+  [`group_lookup(values, g)`], [The column whose value in a row is the value of its group, `values[codes]`], [With `group_sums()`, it demeans a column by group: $tilde(y) = y - "group_lookup"("group_sums"(y, g) \/ n_g, g)$.],
+  [`group_nested(g1, g2)`], [`TRUE` or `FALSE`], [Whether each group of `g1` lies within one group of `g2`.],
+)
 
-all.equal(crossprod(M), crossprod(D))
-all.equal(crossprod(M, w * M), crossprod(D, w * D))
-```
+A grouping is a list with these elements:
 
-#bench("crossprod_w")
+#table(
+  columns: 2,
+  [*Element*], [*Contents*],
+  [`codes`], [The group of each row: an integer vector in memory, a `design_column` remotely.],
+  [`G`], [The number of groups.],
+  [`levels`], [A data frame of the key values of each group, in code order, sorted as the levels of fixed effects.],
+  [`n`], [The number of rows.],
+  [`design`], [The design the grouping was made from.],
+)
 
-For `X'X`, the design matrix adds up the products of each row's few non-zero entries, instead of all `p^2 / 2` products of the dense row.
-
-#bench("crossprod")
-
-== `qr()`
-
-`qr(D)` decomposes a design matrix without forming `X` or `Q`, and the usual functions accept the result: `qr.coef()`, `qr.fitted()`, `qr.resid()`, `qr.qty()`, `qr.qy()`, `qr.Q()`, `qr.R()` and `solve()`. `R` is the Cholesky factor of `crossprod(D)`, with columns pivoted as in `qr()` and `lm()`, and `Q` is `X R^-1`, never formed. Coefficients are refined from the residuals `y - X b`, which recovers much of the accuracy that the normal equations lose on badly conditioned designs. Columns whose residual norm is close to the tolerance are checked against the data, so aliased columns are those of `qr()`.
-
-Results agree with `qr(as.matrix(D))` up to floating point rounding, not bit for bit. Signs of the rows of `R` (and of the columns of `Q`) can differ, and `qr.Q()` and `qr.qty()` return only the first `rank` columns or rows, since the complete `Q` is never formed. See #link("reference/design_qr.html")[`design_qr`]. The #link("recipes/estimation.html")[estimation recipes] benchmark it against other least squares implementations.
-
-```r
-a <- qr(M)
-b <- qr(D)
-b
-all.equal(qr.coef(a, d$y), qr.coef(b, d$y))
-all.equal(qr.resid(a, d$y), qr.resid(b, d$y), check.attributes = FALSE)
-all.equal(abs(qr.R(a)), abs(qr.R(b)), check.attributes = FALSE)
-```
-
-== `colSums()`, `colMeans()`, `rowSums()` and `rowMeans()`
-
-The row and column summaries of base R work on design matrices. Pass one group label per row to `colSums()` or `colMeans()` to get one row per group, as with `base::rowsum()`. Group sums are a building block of cluster-robust standard errors and subgroup averages.
-
-```r
-sites <- data.frame(site = c("B", "A", "B", "B", "A"), x = c(2, 10, 4, 6, 20))
-Ds <- design_matrix(~ x, sites)
-
-colMeans(Ds)
-colSums(Ds, group = sites$site)
-colMeans(Ds, group = sites$site)
-
-all.equal(colSums(Ds, group = sites$site), rowsum(model.matrix(~ x, sites), sites$site))
-```
-
-The benchmark computes weighted group sums. To weight the rows, multiply the design by a vector first.
-
-#bench("colsums")
-
-== `quadratic_diagonal()`
-
-A common task is to extract the diagonal of `X V X'`. For example, in a linear regression context, with `V` the variance-covariance matrix of the coefficients and `X` the design matrix, the diagonal holds the variance of each fitted value, and its square root is the standard error. With `V = solve(crossprod(X))` instead, the diagonal holds the leverage of each observation. `quadratic_diagonal()` computes this diagonal without forming `X` or the full `n` by `n` product.
-
-```r
-V <- diag(6) / 10
-
-a <- rowSums((M %*% V) * M)
-b <- quadratic_diagonal(D, V)
-all.equal(a, b, check.attributes = FALSE)
-```
-
-Base R builds an `n` by `p` intermediate; the kernel touches only the non-zero entries of each row.
-
-#bench("quadratic")
-
-= Sparse matrices
-
-`as(D, "CsparseMatrix")` builds a sparse matrix without forming the dense one. It is identical to converting the dense model matrix.
-
-```r
-library(Matrix)
-dense_to_sparse <- function(M) as(as(as(M, "dMatrix"), "generalMatrix"), "CsparseMatrix")
-a <- dense_to_sparse(M)
-b <- as(D, "CsparseMatrix")
-identical(a, b)
-```
-
-`Matrix::sparse.model.matrix()` and `MatrixModels::model.Matrix()` are shown for reference: they have their own rules for contrasts and column names. This benchmark uses a factor interaction and checks that all four methods produce the same dimensions and entries.
-
-#bench("sparse")
-
-= Repeated rows
-
-When rows have identical predictor values, `xtx` can compute the result once per distinct row and reuse it for every matching row. Row-wise results stay identical bit for bit. The option `xtx.dedup` controls this: `"auto"` (default), `TRUE` (always) or `FALSE` (never).
-
-Repeated rows are found once per design matrix and remembered, so the first call pays for the search. The first two timings include design construction. The cached timing reuses both the design and its groups. Here, 5,000 patterns repeat over 200,000 rows.
-
-#bench("dedup")
+Results with one row per group are in code order: row `l` is `g$levels[l, ]`. Every row must have a group: a missing key (`NA`, `NaN`, SQL `NULL`) is an error on both backends, so select the rows with a key first (remotely `D[DBI::SQL("cl IS NOT NULL"), ]`). The #link("recipes/package-developers.html#the-within-transformation")[within transformation] is a worked example.

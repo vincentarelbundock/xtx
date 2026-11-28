@@ -77,3 +77,17 @@ expect_identical(dim(colMeans(D0, group = integer())), c(0L, ncol(D0)))
 expect_silent(rowsum(D, d$g))
 expect_identical(rowsum(D, d$g, reorder = FALSE),
                  colSums(D, group = d$g, reorder = FALSE))
+
+# ---- the bound of the structured grouped sums (xtx_colsums_struct_ok()):
+# relative to the G x p output, so that a grouping with millions of levels
+# (a fixed effect at 5 million levels) keeps the structured kernel; the
+# check allocates nothing
+local({
+    dat <- as.data.frame(matrix(rnorm(50), 5, 10))
+    dat$y <- rnorm(5)
+    D <- design_matrix(reformulate(paste0("V", 1:10), "y"), dat)
+    ok <- getFromNamespace("xtx_colsums_struct_ok", "xtx")
+    expect_true(ok(D, 1e6))
+    expect_true(ok(D, 5e6))
+    expect_true(ok(D, c(5e6, 10)))
+})

@@ -1575,7 +1575,13 @@ xtx_colsums_struct_ok <- function(D, G) {
     if (!xtx_struct_ok(D)) return(FALSE)
     info <- xtx_struct_info(D)
     Q <- 2 + sum(vapply(info, function(Tt) Tt$L * nrow(Tt$cols), 0))
-    all(Q * as.double(G) <= 2^25)
+    ## The accumulator holds Q x G doubles per grouping; every path returns
+    ## the G x p sums, and the other kernels are several times slower per
+    ## row (the fallback also forms the dense matrix). So the bound is
+    ## relative to the output: 2^25 doubles, or twice the sums, whichever is
+    ## larger. A fixed bound sent fits with millions of levels (a 5 million
+    ## level FE at 50 million rows) to a kernel five times slower.
+    all(Q * as.double(G) <= pmax(2^25, 2 * (ncol(D) + 1) * as.double(G)))
 }
 
 ## ---- more column functions (requested by the GLM work) ----

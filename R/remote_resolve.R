@@ -108,6 +108,10 @@ xtx_response_spec <- function(lhs, types, con) {
         return(list(kind = "matrix", ncol = k, args = if (k >= 2L) list(a = es[[1L]], b = es[[2L]]) else list(),
                     present = as.character(unlist(lapply(if (k >= 2L) es[-(1:2)] else es, col)))))
     }
+    ## (factor(x), as.factor(x), as.character(x) of a text, ENUM or integer
+    ## column: the factor of the column, xtx_factor_call())
+    fc <- xtx_factor_call(lhs, types)
+    if (!is.null(fc)) return(list(kind = "factor", ncol = 1L, args = list(), present = fc$col, text = fc$text))
     t <- ty(lhs)
     if (t %in% c("character", "factor", "other"))
         return(list(kind = if (t == "other") "other" else "factor", ncol = 1L, args = list(), present = col(lhs)))
@@ -143,7 +147,8 @@ xtx_response_result <- function(D, spec, cols, yk = 1L) {
         q <- xtx_qi(D, col)
         vals <- xtx_query(D, sprintf("SELECT DISTINCT s.%s AS v FROM (%s) AS s WHERE %s", q, D$src$select, D$filter))$v
         proto <- D$src$proto[[col]]
-        f <- if (is.factor(proto)) factor(as.character(vals), levels = levels(proto)) else factor(vals)
+        f <- if (is.factor(proto) && !isTRUE(spec$text)) factor(as.character(vals), levels = levels(proto))
+             else factor(if (isTRUE(spec$text)) as.character(vals) else vals)
         out$levels <- levels(droplevels(f))
         out$y <- xtx_column(D, sprintf("CAST(s.%s AS VARCHAR)", q), type = "character")
     }

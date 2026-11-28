@@ -317,3 +317,43 @@ expect_error(crossprod(design_matrix(y ~ x1, con, table = "d"), "nope"), "no col
 
 test_con_done(con)
 unlink(scratch, recursive = TRUE)
+
+## factor(x), as.factor(x), as.character(x) of a text, ENUM or integer
+## column are factor variables on that column, computed in the database
+## (no evaluation in R), with the levels R gives them: numeric order for
+## factor() of an integer, the order of the type for an ENUM, sorted as
+## text for as.character()
+if (requireNamespace("duckdb", quietly = TRUE) && requireNamespace("DBI", quietly = TRUE)) {
+    con <- DBI::dbConnect(duckdb::duckdb())
+    set.seed(31)
+    n <- 400
+    df <- data.frame(x = rnorm(n), xi = sample(c(2L, 9L, 10L, 11L, -3L), n, TRUE), ch = sample(c("b", "a", "c"), n, TRUE),
+                     en = factor(sample(c("z", "m", "a"), n, TRUE), levels = c("z", "m", "a")), lg = sample(c(TRUE, FALSE), n, TRUE))
+    df$xi[7] <- NA
+    DBI::dbWriteTable(con, "df", df)
+    for (fo in list(~ factor(xi), ~ x * as.factor(xi), ~ as.character(xi), ~ factor(ch) + x, ~ as.character(ch),
+                    ~ factor(en), ~ as.character(en) + factor(xi))) {
+        info <- deparse(fo)
+        msgs <- character()
+        D <- withCallingHandlers(design_matrix(fo, con, table = "df"),
+                                 message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+        M <- model.matrix(fo, df)
+        expect_false(any(grepl("Evaluated in R", msgs)), info = info)
+        expect_identical(colnames(D), colnames(M), info = info)
+        expect_equal(unname(as.matrix(crossprod(D))), unname(crossprod(M)), tolerance = 1e-12, info = info)
+        expect_identical(D$plan$xlevels, stats::.getXlevels(stats::terms(fo), stats::model.frame(fo, df)), info = info)
+    }
+    ## other columns and other calls are evaluated in R, as before
+    for (fo in list(~ factor(lg), ~ factor(round(x)), ~ factor(xi, levels = c(2, 9)))) {
+        msgs <- character()
+        D <- withCallingHandlers(design_matrix(fo, con, table = "df"),
+                                 message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+        expect_true(any(grepl("Evaluated in R", msgs)), info = deparse(fo))
+        expect_identical(colnames(D), colnames(model.matrix(fo, df)), info = deparse(fo))
+    }
+    ## the specification of such a design applies to new remote data
+    D <- design_matrix(~ factor(xi) + x, con, table = "df")
+    D2 <- design_matrix(D$plan, con, table = "df", na.action = stats::na.omit)
+    expect_equal(unname(as.matrix(crossprod(D2))), unname(as.matrix(crossprod(D))), tolerance = 1e-12)
+    DBI::dbDisconnect(con)
+}

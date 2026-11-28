@@ -98,10 +98,14 @@ With \code{na.action = na.omit}, they are dropped.
 
 Products with a remote design are computed in DuckDB. SQL computes
 factors, character and logical columns, numeric columns, interactions,
+\code{factor(x)}, \code{as.factor(x)} and \code{as.character(x)} of a text, factor or
+integer column (with the levels R gives them: in numeric order for
+\code{factor()} of an integer column, sorted as text for \code{as.character()}),
 and numeric expressions built from \code{+}, \code{-}, \code{*}, \code{/}, \code{^}, \code{\link[=I]{I()}}, \code{\link[=log]{log()}}
 (with base 2, 10 or a number), \code{\link[=log2]{log2()}}, \code{\link[=log10]{log10()}}, \code{\link[=exp]{exp()}}, \code{\link[=sqrt]{sqrt()}} and
 \code{\link[=abs]{abs()}}. Any other variable, such as \code{\link[stats:poly]{stats::poly()}}, \code{\link[splines:ns]{splines::ns()}},
-\code{factor(cyl)} or a function of yours, is evaluated in R once, in batches
+\code{factor()} of a numeric expression or with \code{levels}, or a function of
+yours, is evaluated in R once, in batches
 of \code{chunk_size} rows, and written with the columns of the remote data to
 a temporary table (one pass over the data, and a copy of it in the
 database), whose columns the design then reads like any others; a

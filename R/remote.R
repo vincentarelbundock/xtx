@@ -68,10 +68,14 @@
 #' @section Engine:
 #' Products with a remote design are computed in DuckDB. SQL computes
 #' factors, character and logical columns, numeric columns, interactions,
+#' `factor(x)`, `as.factor(x)` and `as.character(x)` of a text, factor or
+#' integer column (with the levels R gives them: in numeric order for
+#' `factor()` of an integer column, sorted as text for `as.character()`),
 #' and numeric expressions built from `+`, `-`, `*`, `/`, `^`, [I()], [log()]
 #' (with base 2, 10 or a number), [log2()], [log10()], [exp()], [sqrt()] and
 #' [abs()]. Any other variable, such as [stats::poly()], [splines::ns()],
-#' `factor(cyl)` or a function of yours, is evaluated in R once, in batches
+#' `factor()` of a numeric expression or with `levels`, or a function of
+#' yours, is evaluated in R once, in batches
 #' of `chunk_size` rows, and written with the columns of the remote data to
 #' a temporary table (one pass over the data, and a copy of it in the
 #' database), whose columns the design then reads like any others; a
@@ -367,6 +371,25 @@ xtx_tmp_name <- function(prefix) {
 ##   kind: "factor" (a character or ENUM column), "logical" (a logical
 ##         column), "numeric" (an expression with a SQL translation) or
 ##         "other" (evaluated in R).
+## factor(x), as.factor(x) or as.character(x) of a column x that is text,
+## an ENUM or an integer: a factor variable on that column, which the
+## database groups by its text (xtx_sql_key()). Its levels are those R
+## gives: of factor(x), the values in their order (of an integer column,
+## numeric; of an ENUM, that of its type); of as.character(x), a character
+## variable, which a model frame makes a factor with levels sorted as text
+## (`text`). Other columns (a double has no text that is R's as.character()
+## for every value; a logical has other labels) and other calls (with
+## `levels` or `labels`) are evaluated in R. list(col, text), or NULL.
+xtx_factor_call <- function(e, types) {
+    if (!is.call(e) || length(e) != 2L || !is.name(e[[1L]]) || !is.name(e[[2L]])) return(NULL)
+    if (!is.null(names(e)) && any(nzchar(names(e)))) return(NULL)
+    fn <- as.character(e[[1L]])
+    col <- as.character(e[[2L]])
+    if (!fn %in% c("factor", "as.factor", "as.character") || !isTRUE(types[col] %in% c("character", "factor", "integer")))
+        return(NULL)
+    list(col = col, text = fn == "as.character")
+}
+
 xtx_remote_var <- function(name, expr, types, D, xlevels, formula_case) {
     v <- list(name = name, expr = expr, inputs = intersect(all.vars(expr), names(types)),
               kind = "other", reason = NULL, sql = NULL, col = NULL, levels = NULL)
@@ -392,6 +415,15 @@ xtx_remote_var <- function(name, expr, types, D, xlevels, formula_case) {
             }
             return(v)
         }
+    }
+    ## factor(x), as.factor(x), as.character(x) of a text, ENUM or integer
+    ## column: the factor of the column
+    fc <- xtx_factor_call(expr, types)
+    if (!is.null(fc) && (formula_case || in_xlev)) {
+        v$kind <- "factor"
+        v$col <- fc$col
+        v$text <- fc$text
+        return(v)
     }
     if (in_xlev) {
         v$reason <- sprintf("`%s` is a factor in the specification", name)
@@ -478,8 +510,11 @@ xtx_remote_formula <- function(formula, src, contrasts.arg, xlev, extra = list()
     for (j in seq_along(D$vars)) {
         v <- D$vars[[j]]
         if (v$kind == "factor") {
-            x <- if (types[[v$col]] == "factor" && !drop_unused) src$proto[[v$col]]
+            ## (as.character(x): a character variable, whose levels are the
+            ## values that occur, sorted as text)
+            x <- if (types[[v$col]] == "factor" && !drop_unused && !isTRUE(v$text)) src$proto[[v$col]]
                  else xtx_remote_distinct(D, v$col)[[1L]]
+            if (isTRUE(v$text)) x <- as.character(x)
             x <- as.factor(x)
             if (drop_unused) x <- droplevels(x)
             xlevels[[v$name]] <- levels(x)
@@ -628,7 +663,8 @@ xtx_remote_finish <- function(D, engine) {
         lv <- xl[[v$name]]
         D$vars[[j]]$levels <- lv
         x <- xtx_remote_distinct(D, v$col)[[1L]]
-        xi <- if (is.character(x)) as.factor(x) else x[, drop = TRUE]
+        if (isTRUE(v$text)) x <- as.character(x)
+        xi <- if (is.factor(x)) x[, drop = TRUE] else as.factor(x)
         nxl <- levels(xi)
         m <- is.na(match(nxl, lv))
         if (any(m))

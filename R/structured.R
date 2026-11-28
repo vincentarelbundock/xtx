@@ -99,3 +99,63 @@ xtx_struct_mult <- function(d, B) {
     })
     .Call(C_xtx_struct_mult, d$setup, d$vars, P, K, design_threads())
 }
+
+## diag(X V t(X)) = rowSums((X %*% V) * X), V a p x p finite matrix, or NULL
+## when the tables below would hold more than `cap` numbers (the caller
+## then uses the row kernel). The columns of the design split into its
+## dense part (the terms with one level: the intercept and the products of
+## numeric variables, which are non-zero in every row) and its terms with
+## factors, which have a few non-zero entries per row. The dense part goes
+## through a matrix product, block of rows by block of rows; the terms
+## with factors read small tables: the symmetric part S of V contracted
+## with their contrasts (see xtx_struct_quad() in src/structured.c). The
+## split follows from the terms of the formula, not from a threshold on
+## the density of the rows.
+xtx_struct_quad <- function(d, V, cap = 2^23) {
+    info <- xtx_struct_info(d)
+    L <- vapply(info, function(Tt) as.double(Tt$L), 0)
+    ns <- vapply(info, function(Tt) nrow(Tt$cols), 1L)
+    kc <- vapply(info, function(Tt) ncol(Tt$cols), 1L)
+    fac <- which(L > 1)
+    dcols <- unlist(lapply(info[L == 1], function(Tt) Tt$cols[, 1L]))
+    qd <- length(dcols)
+    pairs <- if (length(fac) > 1L) utils::combn(fac, 2L) else matrix(0L, 2L, 0L)
+    size <- sum(L[fac] * (kc[fac] + ns[fac] * (qd + ns[fac]))) +
+        sum(L[pairs[1L, ]] * L[pairs[2L, ]] * ns[pairs[1L, ]] * ns[pairs[2L, ]])
+    if (size > cap) return(NULL)
+    S <- (V + t(V)) / 2
+    storage.mode(S) <- "double"
+    ## C_t, L x kc: the Kronecker product of the term's contrasts, the
+    ## first factor varying fastest
+    C <- vector("list", length(info))
+    for (t in fac) C[[t]] <- Reduce(function(acc, cm) kronecker(cm, acc), info[[t]]$fcm)
+    A <- Mself <- vector("list", length(info))
+    for (t in fac) {
+        cols <- info[[t]]$cols
+        At <- array(0, c(qd, L[t], ns[t]))
+        Mt <- array(0, c(L[t], ns[t], ns[t]))
+        for (u in seq_len(ns[t])) {
+            if (qd > 0L) At[, , u] <- S[dcols, cols[u, ], drop = FALSE] %*% t(C[[t]])
+            for (v in seq_len(ns[t])) {
+                Mt[, u, v] <- rowSums((C[[t]] %*% S[cols[u, ], cols[v, ], drop = FALSE]) * C[[t]])
+            }
+        }
+        A[[t]] <- At
+        Mself[[t]] <- Mt
+    }
+    Mpair <- lapply(seq_len(ncol(pairs)), function(j) {
+        s <- pairs[1L, j]
+        t <- pairs[2L, j]
+        cs <- info[[s]]$cols
+        ct <- info[[t]]$cols
+        M <- array(0, c(L[s], L[t], ns[s], ns[t]))
+        for (u in seq_len(ns[s])) for (v in seq_len(ns[t])) {
+            M[, , u, v] <- C[[s]] %*% S[cs[u, ], ct[v, ], drop = FALSE] %*% t(C[[t]])
+        }
+        M
+    })
+    pairs0 <- pairs - 1L
+    storage.mode(pairs0) <- "integer"
+    .Call(C_xtx_struct_quad, d$setup, d$vars, S[dcols, dcols, drop = FALSE], A, Mself,
+          pairs0, Mpair, design_threads())
+}

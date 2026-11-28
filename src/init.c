@@ -33,6 +33,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"xtx_struct_gram", (DL_FUNC) &xtx_struct_gram, 4},
     {"xtx_struct_xty", (DL_FUNC) &xtx_struct_xty, 4},
     {"xtx_struct_mult", (DL_FUNC) &xtx_struct_mult, 5},
+    {"xtx_struct_quad", (DL_FUNC) &xtx_struct_quad, 8},
     {"xtx_kron_mode", (DL_FUNC) &xtx_kron_mode, 3},
     {"xtx_min_nonzero", (DL_FUNC) &xtx_min_nonzero, 2},
     {"xtx_all_finite", (DL_FUNC) &xtx_all_finite, 1},

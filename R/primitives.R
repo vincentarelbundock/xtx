@@ -1090,6 +1090,24 @@ xtx_p_quad <- function(x, V) {
             return(unname(rowSums((X %*% V) * X)))
         }
         g <- xtx_dedup_groups(J, cost = xtx_row_cost(J)^2)
+        ## A plain design within the bounds of the structured kernels: its
+        ## dense columns through a matrix product, its factors through
+        ## tables (xtx_struct_quad()). The row kernel below costs the
+        ## square of the entries of each row, which is fine for a few
+        ## factor levels and several times slower than the dense
+        ## computation for numeric variables.
+        ## With groups of identical rows, the same kernel on the distinct
+        ## rows: each row's result is the same bit for bit either way.
+        st <- xtx_struct_single(J)
+        if (!is.null(st) && xtx_in_range(V, 1e-100, 1e100)) {
+            Dq <- if (is.null(g)) st$design else st$design[g$first, ]
+            q <- if (xtx_struct_ok(Dq)) xtx_struct_quad(Dq, V)
+            if (!is.null(q)) {
+                if (!is.null(g)) q <- q[g$map]
+                if (!is.null(st$scale)) q <- st$scale^2 * q
+                if (xtx_all_finite(q)) return(q)
+            }
+        }
         q <- do.call(.Call, c(list(C_xtx_jac_quad), jac_args(J),
                               list(V, if (is.null(g)) NULL else g$first, design_threads())))
         return(if (is.null(g)) q else q[g$map])

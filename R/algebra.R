@@ -355,8 +355,23 @@ xtx_group_summary <- function(x, group, reorder = TRUE, mean = FALSE) {
             w <- J$scale
             J <- as_jac(J$design)
         }
-        W <- matrix(w, nrow = n, ncol = 1L)
-        out <- t(xtx_crossprod_kernel(J, W, codes, length(ugroup)))
+        G <- length(ugroup)
+        out <- NULL
+        ## A plain design within the bounds of the structured kernels: the
+        ## sums by column and group in one pass over the columns (the kernel
+        ## of design_group_sums()), whatever the number of entries per row.
+        ## The row kernel below visits each entry of each row, which costs
+        ## several times more when rows are dense (numeric variables).
+        if (is.null(J$design2) && is.null(J$scale) && xtx_colsums_struct_ok(J$design, G) &&
+            xtx_safe_scale(w)) {
+            ws <- if (identical(w, 1)) NULL else rep_len(as.double(w), n)
+            S <- xtx_gsums_memory(J$design, ws, list(list(G = G, codes = codes)))$gs[[1L]]$S
+            if (xtx_all_finite(S)) out <- S
+        }
+        if (is.null(out)) {
+            W <- matrix(w, nrow = n, ncol = 1L)
+            out <- t(xtx_crossprod_kernel(J, W, codes, G))
+        }
     }
     if (mean) out <- out / tabulate(codes, nbins = length(ugroup))
     dimnames(out) <- list(as.character(ugroup), colnames(x))

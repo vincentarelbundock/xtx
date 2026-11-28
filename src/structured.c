@@ -24,6 +24,7 @@
 
 #define USE_FC_LEN_T
 #include <string.h>
+#include <stdint.h>
 #include <float.h>
 #include <math.h>
 #include <limits.h>
@@ -1140,6 +1141,171 @@ SEXP xtx_struct_mult(SEXP setup, SEXP vars, SEXP P, SEXP K_, SEXP nthreads_)
 		    } else {
 			for (int r = 0; r < nb; r++) ok[r] += N[(size_t) u * BLOCK + r] * pu[F[r]];
 		    }
+		}
+	    }
+	}
+    }
+    UNPROTECT(2);
+    return out;
+}
+
+/* `len` doubles at an address that is a multiple of 64 bytes.  A BLAS
+   routine can round differently according to the alignment of its
+   arguments (it handles the unaligned head of a vector apart); with
+   operands always aligned the same way, the same row gives the same bits
+   in every call. */
+static double *alloc_aligned(size_t len)
+{
+    char *p = R_alloc(len * sizeof(double) + 64, 1);
+    return (double *) (p + ((64 - ((uintptr_t) p & 63)) & 63));
+}
+
+/* diag(X S X'), S symmetric: row i is x_i' S x_i.  The columns split into
+   the dense part z (terms with one level: the intercept and products of
+   numeric variables, non-zero in every row) and the terms with factors
+   x_t = N_t(i) (x) C_t[F_t(i), ], so that
+
+     x' S x = z' S_dd z + 2 sum_t z' S_dt x_t + sum_{s, t} x_s' S_st x_t.
+
+   The first part is a matrix-vector product and a
+   dot product for each row (BLAS); the other
+   two read tables built in R from S and the contrasts:
+     A[[t]]     [qd, L_t, ns_t]: S_dt contracted with C_t,
+     Mself[[t]] [L_t, ns_t, ns_t]: C_t[F, ] S_tt C_t[F, ]' for each level F,
+     Mpair[[j]] [L_s, L_t, ns_s, ns_t] for the pair pairs[, j] = (s, t),
+                s < t (0-based terms): C_s S_st C_t'.
+   Entries of the lists for terms of the dense part are ignored.  Rows are
+   computed in blocks of BLOCK rows, each the same on any number of
+   threads.  Sdd is qd x qd, in the order of dense_part(). */
+SEXP xtx_struct_quad(SEXP setup, SEXP vars, SEXP Sdd_, SEXP A_, SEXP Mself_,
+		     SEXP pairs_, SEXP Mpair_, SEXP nthreads_)
+{
+    sctx S;
+    build_sctx(&S, setup, vars);
+    if (LENGTH(A_) != S.nt || LENGTH(Mself_) != S.nt)
+	error("internal error: one table per term");
+    int np = LENGTH(Mpair_);
+    if (np > 0 && (nrows(pairs_) != 2 || ncols(pairs_) != np))
+	error("internal error: one table per pair of terms");
+    const int *pr = np > 0 ? INTEGER(pairs_) : NULL;
+    SEXP out = PROTECT(allocVector(REALSXP, S.n));
+    double *o = REAL(out);
+    R_xlen_t nblocks = xtx_block_count(S.n, BLOCK);
+    int nthreads = xtx_worker_count(asInteger(nthreads_), nblocks);
+    dpart *DP = (dpart *) R_alloc(nthreads, sizeof(dpart));
+    tblock **Bk = (tblock **) R_alloc(nthreads, sizeof(tblock *));
+    for (int t = 0; t < nthreads; t++) {
+	DP[t] = dense_part(&S);
+	Bk[t] = alloc_blocks(&S, &DP[t]);
+    }
+    int qd = DP[0].q, nfac = 0;
+    for (int t = 0; t < S.nt; t++) nfac += DP[0].off[t] < 0;
+    if (qd > 0 && (nrows(Sdd_) != qd || ncols(Sdd_) != qd))
+	error("internal error: the dense block of 'S' must be %d x %d", qd, qd);
+    double *Sdd = NULL;
+    if (qd > 0) {
+	Sdd = alloc_aligned((size_t) qd * qd);
+	memcpy(Sdd, REAL(Sdd_), sizeof(double) * (size_t) qd * qd);
+    }
+    /* per thread: Z by row (qd x BLOCK), one row z, and S_dd z */
+    double **Zt = (double **) R_alloc(nthreads, sizeof(double *));
+    double **Zr = (double **) R_alloc(nthreads, sizeof(double *));
+    double **Zs = (double **) R_alloc(nthreads, sizeof(double *));
+    for (int t = 0; t < nthreads; t++) {
+	Zt[t] = qd > 0 ? (double *) R_alloc((size_t) BLOCK * qd, sizeof(double)) : NULL;
+	Zr[t] = qd > 0 ? alloc_aligned((size_t) qd) : NULL;
+	Zs[t] = qd > 0 ? alloc_aligned((size_t) qd) : NULL;
+    }
+    const double **atab = (const double **) R_alloc(S.nt > 0 ? S.nt : 1, sizeof(double *));
+    const double **stab = (const double **) R_alloc(S.nt > 0 ? S.nt : 1, sizeof(double *));
+    for (int t = 0; t < S.nt; t++) {
+	int fac = DP[0].off[t] < 0;
+	atab[t] = fac && qd > 0 ? REAL(VECTOR_ELT(A_, t)) : NULL;
+	stab[t] = fac ? REAL(VECTOR_ELT(Mself_, t)) : NULL;
+    }
+    const double **ptab = (const double **) R_alloc(np > 0 ? np : 1, sizeof(double *));
+    for (int j = 0; j < np; j++) ptab[j] = REAL(VECTOR_ELT(Mpair_, j));
+#ifdef _OPENMP
+#pragma omp parallel for if(nthreads > 1) num_threads(nthreads) schedule(static)
+#endif
+    for (R_xlen_t b = 0; b < nblocks; b++) {
+	int th = 0;
+#ifdef _OPENMP
+	th = omp_get_thread_num();
+#endif
+	tblock *Bt = Bk[th];
+	const dpart *Dt = &DP[th];
+	R_xlen_t i0 = b * BLOCK;
+	int nb = (int) (S.n - i0 < BLOCK ? S.n - i0 : BLOCK);
+	double *ob = o + i0;
+	for (int r = 0; r < nb; r++) ob[r] = 0.0;
+	for (int t = 0; t < S.nt; t++) term_block(&S.t[t], S.n, i0, nb, Bt[t].F, Bt[t].N);
+	const double *zt = Zt[th];
+	if (qd > 0) {
+	    double *w = Zt[th];
+	    for (int j = 0; j < qd; j++) {
+		const double *z = Dt->buf + (size_t) j * BLOCK;
+		for (int r = 0; r < nb; r++) w[j + (size_t) qd * r] = z[r];
+	    }
+	    /* z' S_dd z, one row at a time on a copy of the row at a fixed
+	       address: the result for a row does not depend on its position
+	       or on the other rows, so that it is the same bit for bit when
+	       only the distinct rows of a design are computed. */
+	    double one = 1.0, zero = 0.0, *zc = Zr[th], *sz = Zs[th];
+	    int inc = 1;
+	    for (int r = 0; r < nb; r++) {
+		memcpy(zc, w + (size_t) qd * r, sizeof(double) * qd);
+		F77_CALL(dgemv)("N", &qd, &qd, &one, Sdd, &qd, zc, &inc, &zero, sz, &inc FCONE);
+		ob[r] += F77_CALL(ddot)(&qd, zc, &inc, sz, &inc);
+	    }
+	}
+	for (int t = 0; t < S.nt; t++) {
+	    if (Dt->off[t] >= 0) continue;
+	    const sterm *T = &S.t[t];
+	    const int *F = Bt[t].F;
+	    const double *N = Bt[t].N;
+	    int ns = T->ns, L = T->L;
+	    /* 2 z' S_dt x_t */
+	    if (qd > 0) {
+		const double *A = atab[t];
+		for (int u = 0; u < ns; u++) {
+		    const double *Nu = N + (size_t) u * BLOCK;
+		    for (int r = 0; r < nb; r++) {
+			const double *a = A + (size_t) qd * (F[r] + (size_t) L * u);
+			const double *z = zt + (size_t) qd * r;
+			double acc = 0.0;
+			for (int j = 0; j < qd; j++) acc += z[j] * a[j];
+			ob[r] += 2.0 * Nu[r] * acc;
+		    }
+		}
+	    }
+	    /* x_t' S_tt x_t */
+	    const double *M = stab[t];
+	    for (int u = 0; u < ns; u++) {
+		const double *Nu = N + (size_t) u * BLOCK;
+		for (int v = 0; v < ns; v++) {
+		    const double *Nv = N + (size_t) v * BLOCK;
+		    const double *m = M + (size_t) L * (u + (size_t) ns * v);
+		    for (int r = 0; r < nb; r++) ob[r] += Nu[r] * Nv[r] * m[F[r]];
+		}
+	    }
+	}
+	/* 2 x_s' S_st x_t, s < t */
+	for (int j = 0; j < np; j++) {
+	    int s = pr[2 * j], t = pr[2 * j + 1];
+	    const sterm *Ts = &S.t[s], *Tt = &S.t[t];
+	    const int *Fs = Bt[s].F, *Ft = Bt[t].F;
+	    const double *Ns = Bt[s].N, *Nt = Bt[t].N;
+	    size_t Ls = (size_t) Ts->L, Lt = (size_t) Tt->L;
+	    int nss = Ts->ns, nst = Tt->ns;
+	    const double *M = ptab[j];
+	    for (int u = 0; u < nss; u++) {
+		const double *Nu = Ns + (size_t) u * BLOCK;
+		for (int v = 0; v < nst; v++) {
+		    const double *Nv = Nt + (size_t) v * BLOCK;
+		    const double *m = M + Ls * Lt * (u + (size_t) nss * v);
+		    for (int r = 0; r < nb; r++)
+			ob[r] += 2.0 * Nu[r] * Nv[r] * m[Fs[r] + Ls * Ft[r]];
 		}
 	    }
 	}

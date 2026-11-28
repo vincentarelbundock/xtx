@@ -125,6 +125,7 @@ SEXP xtx_struct_info(SEXP, SEXP);
 SEXP xtx_struct_gram(SEXP, SEXP, SEXP, SEXP);
 SEXP xtx_struct_xty(SEXP, SEXP, SEXP, SEXP);
 SEXP xtx_struct_mult(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP xtx_struct_quad(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP xtx_kron_mode(SEXP, SEXP, SEXP);
 SEXP xtx_min_nonzero(SEXP, SEXP);
 SEXP xtx_all_finite(SEXP);

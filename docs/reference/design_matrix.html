@@ -3137,21 +3137,21 @@ html:not([data-theme]) {
 X <span class="calepin-syntax-scope-27">&lt;-</span> <span class="calepin-syntax-scope-21">as.matrix</span>(<span class="calepin-syntax-scope-22">design_matrix</span>(y <span class="calepin-syntax-scope-6">~</span> x <span class="calepin-syntax-scope-24">*</span> f<span class="calepin-syntax-scope-26">,</span> d))
 <span class="calepin-syntax-scope-21">identical</span>(X<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-21">model.matrix</span>(y <span class="calepin-syntax-scope-6">~</span> x <span class="calepin-syntax-scope-24">*</span> f<span class="calepin-syntax-scope-26">,</span> d))</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>[1] TRUE</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r">
 D <span class="calepin-syntax-scope-27">&lt;-</span> <span class="calepin-syntax-scope-22">design_matrix</span>(y <span class="calepin-syntax-scope-6">~</span> x <span class="calepin-syntax-scope-24">*</span> f<span class="calepin-syntax-scope-26">,</span> d)
-D <span class="calepin-syntax-scope-24">%*%</span> <span class="calepin-syntax-scope-21">c</span>(<span class="calepin-syntax-scope-23">1</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">2</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">3</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">4</span>)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>             [,1]
- [1,] -1.06122790
- [2,] -0.63499311
- [3,]  1.65475212
- [4,] -1.71561392
- [5,] -0.62128046
- [6,]  9.34843453
- [7,]  0.03725058
- [8,]  8.18628603
- [9,]  5.02064573
-[10,]  0.93938494</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r">D_new <span class="calepin-syntax-scope-27">&lt;-</span> <span class="calepin-syntax-scope-22">design_matrix</span>(D<span class="calepin-syntax-scope-26">,</span> d[<span class="calepin-syntax-scope-23">1</span><span class="calepin-syntax-scope-6">:</span><span class="calepin-syntax-scope-23">3</span><span class="calepin-syntax-scope-26">,</span> ])
+D <span class="calepin-syntax-scope-24">%*%</span> <span class="calepin-syntax-scope-21">c</span>(<span class="calepin-syntax-scope-23">1</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">2</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">3</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">4</span>)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>           [,1]
+ [1,] 1.3762950
+ [2,] 0.7507836
+ [3,] 0.8807226
+ [4,] 2.8406042
+ [5,] 0.8270181
+ [6,] 4.7597028
+ [7,] 4.8293207
+ [8,] 5.2840908
+ [9,] 1.2876093
+[10,] 1.0117196</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r">D_new <span class="calepin-syntax-scope-27">&lt;-</span> <span class="calepin-syntax-scope-22">design_matrix</span>(D<span class="calepin-syntax-scope-26">,</span> d[<span class="calepin-syntax-scope-23">1</span><span class="calepin-syntax-scope-6">:</span><span class="calepin-syntax-scope-23">3</span><span class="calepin-syntax-scope-26">,</span> ])
 <span class="calepin-syntax-scope-21">as.matrix</span>(D_new)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  (Intercept)          x f2 x:f2
-1           1 -1.0306139  0    0
-2           1 -0.8174966  0    0
-3           1  0.3273761  0    0
+1           1  0.1881475  0    0
+2           1 -0.1246082  0    0
+3           1 -0.0596387  0    0
 attr(,"assign")
 [1] 0 1 2 3
 attr(,"contrasts")

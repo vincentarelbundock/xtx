@@ -3151,37 +3151,34 @@ X <span class="calepin-syntax-scope-27">&lt;-</span> <span class="calepin-syntax
 b <span class="calepin-syntax-scope-27">&lt;-</span> <span class="calepin-syntax-scope-21">rnorm</span>(<span class="calepin-syntax-scope-21">ncol</span>(D))
 <span class="calepin-syntax-scope-21">all.equal</span>(D <span class="calepin-syntax-scope-24">%*%</span> b<span class="calepin-syntax-scope-26">,</span> X <span class="calepin-syntax-scope-24">%*%</span> b<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-28">check.attributes</span> <span class="calepin-syntax-scope-27">=</span> <span class="calepin-syntax-scope-11">FALSE</span>)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>[1] TRUE</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">crossprod</span>(D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-21">rep</span>(<span class="calepin-syntax-scope-23">1</span><span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-23">100</span>))</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>                   [,1]
 (Intercept) 100.0000000
-x             0.2689511
+x            16.1540170
 f2           25.0000000
 f3           25.0000000
 f4           25.0000000
-x:f2          2.5817038
-x:f3         -7.0363820
-x:f4          6.2595035</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">colMeans</span>(D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-28">group</span> <span class="calepin-syntax-scope-27">=</span> d<span class="calepin-syntax-scope-6">$</span>g)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  (Intercept)           x   f2   f3   f4         x:f2        x:f3       x:f4
-1           1  0.02059169 0.24 0.26 0.24  0.052661322 -0.09516402 0.07068286
-2           1 -0.01521267 0.26 0.24 0.26 -0.001027247 -0.04556362 0.05450721</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">colSums</span>(<span class="calepin-syntax-scope-21">runif</span>(<span class="calepin-syntax-scope-23">100</span>) <span class="calepin-syntax-scope-24">*</span> D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-28">group</span> <span class="calepin-syntax-scope-27">=</span> d<span class="calepin-syntax-scope-6">$</span>g)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  (Intercept)          x       f2       f3       f4      x:f2      x:f3
-1    26.62124 -0.6763929 6.457441 7.899094 6.132997 0.4036159 -2.194480
-2    24.04516 -0.6369953 5.940141 6.304916 7.733211 0.7589573 -1.293284
-      x:f4
-1 2.182727
-2 1.179944</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">colMeans</span>(D)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code> (Intercept)            x           f2           f3           f4         x:f2 
- 1.000000000  0.002689511  0.250000000  0.250000000  0.250000000  0.025817038 
+x:f2          0.4794542
+x:f3          7.4871841
+x:f4         -1.0202493</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">colMeans</span>(D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-28">group</span> <span class="calepin-syntax-scope-27">=</span> d<span class="calepin-syntax-scope-6">$</span>g)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  (Intercept)         x   f2   f3   f4        x:f2       x:f3         x:f4
+1           1 0.1064433 0.24 0.26 0.24 -0.02971623 0.10656232 -0.003966931
+2           1 0.2166371 0.26 0.24 0.26  0.03930531 0.04318136 -0.016438055</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">colSums</span>(<span class="calepin-syntax-scope-21">runif</span>(<span class="calepin-syntax-scope-23">100</span>) <span class="calepin-syntax-scope-24">*</span> D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-28">group</span> <span class="calepin-syntax-scope-27">=</span> d<span class="calepin-syntax-scope-6">$</span>g)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  (Intercept)        x       f2       f3       f4      x:f2     x:f3       x:f4
+1    27.36384 2.475039 6.635313 7.205889 6.679765 -0.408997 3.913912 -1.3373094
+2    24.69942 6.457963 5.725891 7.507661 6.401370  1.471359 2.414300  0.0904771</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-21">colMeans</span>(D)</code></pre></div><div class="cell-output cell-output-stdout"><pre><code> (Intercept)            x           f2           f3           f4         x:f2 
+ 1.000000000  0.161540170  0.250000000  0.250000000  0.250000000  0.004794542 
         x:f3         x:f4 
--0.070363820  0.062595035</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-22">quadratic_diagonal</span>(D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-21">diag</span>(<span class="calepin-syntax-scope-21">ncol</span>(D)))</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  [1]  1.533752  1.735640  2.048554  1.474554  2.693495  3.678092  2.350341
-  [8]  1.539487  1.021157  2.204925  1.961532  2.452003  1.027777  2.464077
- [15]  3.735036  1.006628  1.063325  1.048435  1.044836  1.058969  2.050304
- [22]  6.193117  1.679258  1.061508  1.448009  2.007146  2.186240 13.032251
- [29]  2.057532  4.578542  2.003759  3.214090  5.314043  2.018390  2.000927
- [36] 12.096347  3.801751  3.818809  3.092444  2.016459  2.423008  2.184271
- [43]  6.233394  5.032008  2.084857  2.856016  2.070411  4.876507  2.013259
- [50]  2.038231  3.666906 10.349690  6.095074 22.820652  2.354948  5.539750
- [57]  2.127415  2.146852  7.174234  2.004517  2.040706  2.014831  2.003412
- [64] 11.454161  2.028526  2.018479  2.492200  2.054284  2.010994  2.001081
- [71]  2.987443  2.092066  3.156545  2.018927  4.971880  2.761554  2.000712
- [78]  3.592969  9.009229  2.392511  2.052431  3.549240  2.889582  4.099731
- [85]  5.694380  4.628122  2.808233  3.765352  4.284936  2.954289 15.881751
- [92]  3.200035  2.306931  4.886276  2.355883  2.058072  2.182919  2.055208
- [99]  2.003351  2.095908</code></pre></div>
+ 0.074871841 -0.010202493</code></pre></div><div class="sourceCode" data-lang="R"><pre><code data-lang="r"><span class="calepin-syntax-scope-22">quadratic_diagonal</span>(D<span class="calepin-syntax-scope-26">,</span> <span class="calepin-syntax-scope-21">diag</span>(<span class="calepin-syntax-scope-21">ncol</span>(D)))</code></pre></div><div class="cell-output cell-output-stdout"><pre><code>  [1]  1.079225  1.273457  1.198998  1.266529  1.017907  1.543399  3.151933
+  [8]  1.361580  2.723656  1.128041  1.090900  2.375019  7.363904  1.626435
+ [15]  1.522902  3.367918  4.939143  2.846617  1.286537  1.002259  1.002955
+ [22]  3.703736  1.337311  2.109142  1.410930  2.699135  4.968191  3.251582
+ [29]  5.838113  3.947558  2.051769  2.992586  2.413163  2.667202  4.040611
+ [36]  2.010036  2.907526  2.477849  5.829440 10.342027  2.001309  4.110845
+ [43]  2.937934  2.019013  3.628083  2.452130  2.015988  8.559011  2.009065
+ [50]  2.899008  2.696044  6.674975  2.191898 20.716551  2.001757  2.691479
+ [57]  2.074746  2.373209  2.051526  5.641309 10.642590  2.036154  3.680114
+ [64]  2.740337  2.263760  2.007899 24.419440  3.157804  2.178991  3.799810
+ [71]  3.436376  2.354446  2.012340  3.957417  6.165691  3.685035  2.017717
+ [78]  5.188282  3.229331  2.001944  3.271612  2.710968  2.757000  2.023361
+ [85]  5.304729  2.061080  2.855479  2.042761  6.543316  2.622090  3.083779
+ [92]  2.166091  2.034770  2.121131  3.375744  2.068515  5.903542  2.324697
+ [99]  2.000157  4.526877</code></pre></div>
         </main>
                 
         <aside class="calepin-website-toc is-floating">

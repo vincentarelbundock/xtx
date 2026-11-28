@@ -212,3 +212,24 @@ expect_true(same(c(as.matrix(design_matrix(toy, newdata = nd))), c(Xt)))
 design_parts.badfit <- function(model, ...) list(terms = "y ~ x", xlevels = NULL, contrasts = NULL)
 .S3method("design_parts", "badfit", design_parts.badfit)
 expect_error(plan_of(structure(list(), class = "badfit")), "terms")
+
+## design_relation(): the rows of a remote design and columns over them as
+## what a query reads (connection, source, filter, expressions)
+if (requireNamespace("duckdb", quietly = TRUE) && requireNamespace("DBI", quietly = TRUE)) {
+    con <- DBI::dbConnect(duckdb::duckdb())
+    set.seed(5)
+    dr <- data.frame(y = rnorm(30), x = rnorm(30), id = rep(1:6, 5), g = rep(c("a", "b", "c"), 10))
+    dr$x[4] <- NA
+    DBI::dbWriteTable(con, "dr", dr)
+    D <- design_matrix(~ x, con, table = "dr")
+    r <- design_relation(D, list(xb = D %*% c(1, 2), key = design_key(D, c("id", "g"))))
+    expect_identical(names(r$sql), c("xb", "key"))
+    expect_identical(lengths(r$sql), c(xb = 1L, key = 2L))
+    got <- DBI::dbGetQuery(r$con, sprintf("SELECT %s AS id, SUM(%s) AS s FROM (%s) AS s WHERE %s GROUP BY 1 ORDER BY 1",
+                                          r$sql$key[1L], r$sql$xb, r$select, r$filter))
+    ok <- !is.na(dr$x)
+    expect_equal(got$s, as.vector(tapply(1 + 2 * dr$x[ok], dr$id[ok], sum)), tolerance = 1e-12)
+    expect_error(design_relation(D, list(a = 1)), "must be a column")
+    expect_error(design_relation(design_matrix(~ x, dr), list(a = 1)))
+    DBI::dbDisconnect(con)
+}

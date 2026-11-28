@@ -36,3 +36,48 @@ design_subset <- function(x, keep = NULL, cols = list()) {
     }
     list(x = x2, cols = walk(cols))
 }
+
+#' The rows of a remote design and columns over them, as a SQL relation
+#'
+#' `design_relation()` gives what a query needs to read columns over the
+#' rows of a remote design: the connection, the source to select from, the
+#' filter of the rows and the SQL expression of each column. It is for
+#' computations that stay in the database (tables of sums within the levels
+#' of a variable with too many levels to read, say), built on the columns
+#' of a design: products with the design (`x %*% b`), responses, weights
+#' and keys ([design_key()]).
+#'
+#' The rows are those of
+#' `SELECT ... FROM (<select>) AS s WHERE <filter>`, and each expression
+#' names the columns of `s`. Temporary tables that the expressions or the
+#' filter name must exist when the query runs.
+#'
+#' @param x A remote design.
+#' @param cols A named list of columns over the rows of `x`
+#'   ([design_column()]s), each with one or several SQL columns.
+#' @return A list with `con` (the DBI connection), `select` and `filter`
+#'   (strings) and `sql`, a list named as `cols`: the SQL expressions of
+#'   each column, a character vector.
+#' @examples
+#' if (requireNamespace("duckdb", quietly = TRUE)) {
+#'     con <- DBI::dbConnect(duckdb::duckdb())
+#'     DBI::dbWriteTable(con, "d", data.frame(y = rnorm(10), x = rnorm(10), id = rep(1:5, 2)))
+#'     D <- design_matrix(~ x, con, table = "d")
+#'     r <- design_relation(D, list(xb = D %*% c(1, 2), id = design_key(D, "id")))
+#'     DBI::dbGetQuery(r$con, sprintf("SELECT %s AS id, SUM(%s) AS s FROM (%s) AS s WHERE %s GROUP BY 1",
+#'                                    r$sql$id, r$sql$xb, r$select, r$filter))
+#'     DBI::dbDisconnect(con)
+#' }
+#' @export
+design_relation <- function(x, cols) {
+    checkmate::assert_class(x, "xtx_remote")
+    checkmate::assert_list(cols, names = "unique", min.len = 1L)
+    for (nm in names(cols))
+        if (!xtx_is_column(cols[[nm]])) stop(sprintf("`cols$%s` must be a column of the design.", nm), call. = FALSE)
+    all <- do.call(xtx_c_cbind, unname(cols))
+    u <- unclass(all)
+    fr <- xtx_frame_ready(u$frame, u$sql)
+    k <- vapply(cols, xtx_ncols, 1L)
+    list(con = xtx_con(fr), select = fr$src$select, filter = fr$filter,
+         sql = unname(split(u$sql, rep(seq_along(cols), k))) |> stats::setNames(names(cols)))
+}

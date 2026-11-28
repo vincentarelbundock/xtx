@@ -28,7 +28,7 @@ d <- data.frame(
 
 `lm_xtx()` and `glm_xtx()` take `vcov = "iid"` (the default) or `vcov = ~cl`, for standard errors clustered by a variable. The last section computes heteroskedasticity-consistent and clustered covariance matrices for data that stay in a database.
 
-= Cluster-robust standard errors by hand
+= By hand
 
 The cluster-robust covariance matrix is the sandwich `B M B`, with bread `B = (X'X)^-1` and meat `M = S'S`, where row `c` of `S` sums `e_i x_i` over the observations in cluster `c` (without a small-sample correction). The same function works on the dense model matrix and on the design matrix.
 
@@ -53,7 +53,7 @@ The benchmark runs on top of the #link("../benchmarks.html#setup")[benchmark set
 
 #bench("cluster")
 
-= Robust standard errors on a database
+= On a database
 
 ```r
 library(xtx)

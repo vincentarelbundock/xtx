@@ -46,7 +46,7 @@ beta <- c("(Intercept)" = 10, x = 2, groupb = -1)
 drop(D %*% beta)
 ```
 
-More examples: #link("recipes/algebra.html")[Algebra] (products, `crossprod()`, `qr()`, sparse matrices, new data), #link("recipes/prediction.html")[Prediction], #link("fit/lm_xtx.html")[Model fitting], #link("out-of-core.html")[Out-of-core data] (DuckDB and Parquet), and #link("recipes/package-developers.html")[Package developers] (building estimators from the primitives).
+More examples: #link("recipes/algebra.html")[Algebra] (products, `crossprod()`, `qr()`, sparse matrices, new data), #link("recipes/prediction.html")[Prediction], #link("fit/lm_xtx.html")[Model fitting], #link("out-of-core.html")[Out-of-core data] (DuckDB and Parquet), and #link("recipes/package-developers.html")[Estimators] (building estimators from the primitives).
 
 = Performance
 

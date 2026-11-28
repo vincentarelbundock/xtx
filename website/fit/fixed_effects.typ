@@ -245,7 +245,29 @@ In database (DuckDB):
 - `fixest` and `pyfixest` demean the data by alternating projections: they subtract the means of each fixed effect in turn from the outcome and from every regressor, sweeping over the rows until nothing changes, then run least squares on the demeaned data. The number of sweeps depends on how individuals are matched with groups: one on a balanced panel, a few with random matching, many with round robin.
 - `xtx.fit` never demeans. A fixed number of passes over the rows computes sums (cross-products of the regressors, their sums within each level, and counts of the levels that occur together), then a linear system over the levels of the fixed effects is solved: the largest fixed effect is eliminated exactly, the others by a direct factorization (up to 1,000 levels) or by conjugate gradients. `options(xtx.fe_precond = "jacobi")` or `"ichol"` forces a preconditioner, and `xtx.fe_form_max` sets when the reduced system is formed (`0` never, `Inf` always).
 
-The time of the first grows with the number of sweeps, so with the data generating process; the time of the second depends on it much less. See #link("../architecture.html")[Architecture] for details.
+The time of the first grows with the number of sweeps, so with the data generating process; the time of the second depends on it much less.
+
+== Solver
+
+`lm_xtx(y ~ x | f1 + f2)` absorbs the fixed effects without demeaning (`R/absorb.R` and `src/fe_solver.c` of `xtx.fit`, on the grouped sums and crosstabs of `xtx`, `src/fe.c`; the fit in `R/fe.R`). Write the model $y = X b + F a + e$, with $F$ the dummies of the $K$ fixed effects and $W$ the weights. With
+
+$ S = F' W X, quad s = F' W y, quad K = F' W F, $
+
+the Frisch-Waugh-Lovell moments are
+
+$ X' M X = X' W X - S' K^(-) S, quad X' M y = X' W y - S' K^(-) s. $
+
+Every input is a sum over rows: $X' W X$ and $X' W y$ are products with the design, $S$ and $s$ are grouped sums, and $K$ has the level counts on its diagonal blocks and the crosstabs of pairs of fixed effects off the diagonal. The remaining work is the solve with $K$, whose size is the number of levels and not the number of rows:
+
+- the largest fixed effect is eliminated analytically, since its block of $K$ is diagonal;
+- the Schur complement over the other fixed effects is a sparse, symmetric, singular system whose diagonal blocks are weighted graph Laplacians. One level per connected component is set to zero;
+- it is solved by a pivoted dense Cholesky factorization when small (which also gives the rank), and otherwise by conjugate gradients: on the formed matrix with an incomplete Cholesky preconditioner when mobility between levels is low and the matrix is sparse, or without forming it, with a diagonal preconditioner, when it would be near dense. A probe of a few columns chooses between the two.
+
+The same solve gives the values of the fixed effects. The coefficients are then refined from residuals computed row by row, which corrects the rounding of the one-pass sums. Cluster-robust scores are also sums: grouped column sums of $w e X$, minus a correction from the crosstab of clusters and fixed effects.
+
+For a GLM with fixed effects, the weighted least squares step of each IRLS iteration is this estimator, with the working weights (`R/fe_glm.R`). The reduced system changes a little at each iteration, so conjugate gradients start from the previous solution.
+
+Remotely, the database returns the grouped sums and crosstabs and R solves the reduced system. The fit scales with the number of levels and of non-empty crosstab cells, which must fit in memory, and not with the number of rows.
 
 = Time
 

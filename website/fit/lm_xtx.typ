@@ -40,7 +40,7 @@ When many rows share a design pattern (factors and discrete numeric variables), 
 
 #bench("lm")
 
-= Least squares with `qr()`
+= Least squares
 
 Least squares coefficients only need `X'X` and `X'y`, so `qr()` on a design matrix gives them without forming the dense matrix. With weights, use `qr(sqrt(w) * D)` and `sqrt(w) * y`.
 

@@ -47,7 +47,7 @@ Writing the dense output accounts for much of the work in both implementations. 
 
 #bench("threads")
 
-= Reusing a design on new data
+= New data
 
 To make predictions, new rows must be turned into columns exactly as the training rows were. Here, `poly(x, 2)` must use the training polynomial, and `f` must keep one column per training level even though the new data only contain `"b"`. Pass the training design and the new data to `design_matrix()`, then use `as.matrix()` to display the columns.
 
@@ -108,7 +108,7 @@ For `X'X`, the design matrix adds up the products of each row's few non-zero ent
 
 `qr(D)` decomposes a design matrix without forming `X` or `Q`, and the usual functions accept the result: `qr.coef()`, `qr.fitted()`, `qr.resid()`, `qr.qty()`, `qr.qy()`, `qr.Q()`, `qr.R()` and `solve()`. `R` is the Cholesky factor of `crossprod(D)`, with columns pivoted as in `qr()` and `lm()`, and `Q` is `X R^-1`, never formed. Coefficients are refined from the residuals `y - X b`, which recovers much of the accuracy that the normal equations lose on badly conditioned designs. Columns whose residual norm is close to the tolerance are checked against the data, so aliased columns are those of `qr()`.
 
-Results agree with `qr(as.matrix(D))` up to floating point rounding, not bit for bit. Signs of the rows of `R` (and of the columns of `Q`) can differ, and `qr.Q()` and `qr.qty()` return only the first `rank` columns or rows, since the complete `Q` is never formed. See #link("../reference/design_qr.html")[`design_qr`]. The #link("../fit/lm_xtx.html#least-squares-with-qr")[`lm_xtx()` page] benchmarks it against other least squares implementations.
+Results agree with `qr(as.matrix(D))` up to floating point rounding, not bit for bit. Signs of the rows of `R` (and of the columns of `Q`) can differ, and `qr.Q()` and `qr.qty()` return only the first `rank` columns or rows, since the complete `Q` is never formed. See #link("../reference/design_qr.html")[`design_qr`]. The #link("../fit/lm_xtx.html#least-squares")[`lm_xtx()` page] benchmarks it against other least squares implementations.
 
 ```r
 a <- qr(M)
@@ -216,7 +216,7 @@ summary(D2)
 
 To fit in R and score in the database, pass a design or a fitted model instead of the formula: its levels, contrasts and transformations are used, and rows with missing values are kept, with `NULL` predictions, as in memory.
 
-= Algebra in the database
+= Database algebra
 
 `crossprod()`, `colSums()`, `colMeans()`, `rowSums()`, `quadratic_diagonal()`, `qr()` and its methods, `as.matrix()` and sparse coercion (for small data), row selection with `D[DBI::SQL("x > 0"), ]` and row scaling work as in memory. Rows are scaled by a column name or a SQL expression (`DBI::SQL()`) instead of a vector, so `crossprod(D, "w" * D)` is `X'WX`:
 
@@ -230,7 +230,7 @@ all.equal(colSums(D, group = "cl"), rowsum(X, d$cl), check.attributes = FALSE)
 
 When the rows have few distinct design patterns (factors and discrete numeric variables), these products and `lm_xtx()` run one `GROUP BY` over the input columns of the design, and compute the result from the design of the patterns, in memory. The option `xtx.remote_compress` controls this.
 
-= Columns in the database
+= Database columns
 
 `D %*% beta`, `rowSums(D)` and `quadratic_diagonal(D, V)` return a remote column, a `design_column`: a SQL expression over the rows of the design, which nothing evaluates until its values are asked for. `design_column(D, "y")` makes one from a column of the data (or from a `DBI::SQL()` expression), and arithmetic on columns (`+`, `*`, `exp()`, `log()`, comparisons, `is.na()`) builds new ones. `as.vector()` and `as.matrix()` read the values into R, `as.data.frame()` reads them as a data frame, with columns of the data given by `keep`, and `col_compute()` stores a column in a temporary table, so that later queries read it instead of recomputing it; with `name = "preds"`, in a permanent table of the connection, for use outside the package (join it to other data on a key column such as `id`). Printing a column shows its SQL and its connection, and reads no row.
 

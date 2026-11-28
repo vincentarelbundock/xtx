@@ -81,7 +81,7 @@ DBI::dbDisconnect(con)
 ```
 ]
 
-The recipes show more on a database: #link("recipes/algebra.html#duckdb-and-parquet")[designs, algebra and columns], #link("fit/lm_xtx.html#on-a-database")[linear models], #link("fit/glm_xtx.html#on-a-database")[generalized linear models] and #link("fit/standard_errors.html#robust-standard-errors-on-a-database")[robust standard errors].
+The recipes show more on a database: #link("recipes/algebra.html#duckdb-and-parquet")[designs, algebra and columns], #link("fit/lm_xtx.html#on-a-database")[linear models], #link("fit/glm_xtx.html#on-a-database")[generalized linear models] and #link("fit/standard_errors.html#on-a-database")[robust standard errors].
 
 = Differences
 

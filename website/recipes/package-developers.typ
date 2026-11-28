@@ -1,8 +1,8 @@
 #import "/.calepin/calepin.typ" as calepin
 #show: calepin.document
 
-#set document(title: [Building estimators])
-#metadata((title: "Building estimators")) <website-metadata>
+#set document(title: [Estimators])
+#metadata((title: "Estimators")) <website-metadata>
 
 #calepin.setup(echo: true, eval: true, results: "verbatim", warning: false, message: false)
 
@@ -40,7 +40,7 @@ D_mem <- design_matrix(y ~ x + f, d)
 D_db  <- design_matrix(y ~ x + f, con, table = "d")
 ```
 
-= Least squares with clustered standard errors
+= Clustered standard errors
 
 The coefficients come from $X'X$ and $X'y$; the residuals are a column; the scores of each cluster are the column sums of the design scaled by the residuals, $sum_(i in g) e_i x_i$, one row per cluster. The sandwich $V = G/(G-1) (X'X)^(-1) S'S (X'X)^(-1)$ is then a small computation in R.
 
@@ -81,7 +81,7 @@ V <- 40 / 39 * bread %*% crossprod(S) %*% bread
 all.equal(unname(fit_db[, "std.error"]), unname(sqrt(diag(V))))
 ```
 
-= A one-step robust estimator
+= One-step estimator
 
 One step of iteratively reweighted least squares for Huber's M-estimator, from the least squares fit: the residuals are scaled, the rows with large residuals are downweighted with `col_pmin()`, and a weighted least squares step gives the new coefficients. `col_compute()` stores the residuals in a temporary table, since they are used several times (in memory it returns the vector). `col_sums()` reads several sums in one query.
 

@@ -16,7 +16,7 @@ options(width = 200)
 
 #title()
 
-These recipes compute predictions from a fitted model and their standard errors. Both build the design for the new data from the model's own encoding, so they rely on #link("algebra.html#reusing-a-design-on-new-data")[reusing a design on new data]. Each one checks a small example against base R, then times both on 200,000 rows and 119 columns, on one thread.
+These recipes compute predictions from a fitted model and their standard errors. Both build the design for the new data from the model's own encoding, so they rely on #link("algebra.html#new-data")[reusing a design on new data]. Each one checks a small example against base R, then times both on 200,000 rows and 119 columns, on one thread.
 
 ```r
 library(xtx)
@@ -49,7 +49,7 @@ For repeated batches, prepare the specification once and reuse it:
 
 #bench("predict")
 
-= Standard errors of predictions
+= Standard errors
 
 The standard errors of the predictions are the square roots of the diagonal of `X V X'`, where `V` is the variance-covariance matrix of the coefficients.
 

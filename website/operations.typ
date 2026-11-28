@@ -34,7 +34,7 @@ A design matrix holds the prepared variables and the layout of the columns, but 
   [Repeated rows], [Computes once per distinct row and reuses the result. Row-wise results stay identical bit for bit. The option is `"auto"` (default), `TRUE` or `FALSE`.], [`options(xtx.dedup = "auto")`],
 )
 
-Examples and benchmarks of threads, #link("recipes/algebra.html#reusing-a-design-on-new-data")[reuse on new data], #link("recipes/algebra.html#sparse-matrices")[sparse matrices] and #link("recipes/algebra.html#repeated-rows")[repeated rows] are in the #link("recipes/algebra.html")[Algebra recipes].
+Examples and benchmarks of threads, #link("recipes/algebra.html#new-data")[reuse on new data], #link("recipes/algebra.html#sparse-matrices")[sparse matrices] and #link("recipes/algebra.html#repeated-rows")[repeated rows] are in the #link("recipes/algebra.html")[Algebra recipes].
 
 = Algebra
 
@@ -55,11 +55,11 @@ None of these forms the dense matrix.
   [`quadratic_diagonal()`], [The diagonal of `X V X'` without forming `X` or the `n` by `n` product. With `V` the variance-covariance matrix of the coefficients it holds the variance of each fitted value; with `V = solve(crossprod(X))`, the leverages.], [`quadratic_diagonal(D, V)`],
 )
 
-The #link("recipes/algebra.html")[Algebra recipes] check each of these against base R. The #link("fit/lm_xtx.html#least-squares-with-qr")[`lm_xtx()` page] benchmarks `qr()` against other least squares implementations.
+The #link("recipes/algebra.html")[Algebra recipes] check each of these against base R. The #link("fit/lm_xtx.html#least-squares")[`lm_xtx()` page] benchmarks `qr()` against other least squares implementations.
 
 = Columns
 
-A column holds one value per row. In memory it is a numeric vector. For a remote design (a DuckDB table or Parquet files) it is a `design_column`: a lazy SQL expression over the rows, which nothing evaluates until a sum, a product or `as.vector()` asks for its values. Only small results (numbers, $p times p$ matrices, one row per cluster) come back to R. An estimator written with these functions and the products above runs unchanged on a data frame and on a database table: see #link("recipes/package-developers.html")[Building estimators] for worked examples.
+A column holds one value per row. In memory it is a numeric vector. For a remote design (a DuckDB table or Parquet files) it is a `design_column`: a lazy SQL expression over the rows, which nothing evaluates until a sum, a product or `as.vector()` asks for its values. Only small results (numbers, $p times p$ matrices, one row per cluster) come back to R. An estimator written with these functions and the products above runs unchanged on a data frame and on a database table: see #link("recipes/package-developers.html")[Estimators] for worked examples.
 
 #table(
   columns: 2,
@@ -71,7 +71,7 @@ A column holds one value per row. In memory it is a numeric vector. For a remote
   [Compression], [`design_patterns()` (a design and a response compressed to sufficient statistics)],
 )
 
-== Remote columns are lazy
+== Lazy columns
 
 A remote column is a SQL expression. These points hold for it, and the in-memory vector gives the same results.
 

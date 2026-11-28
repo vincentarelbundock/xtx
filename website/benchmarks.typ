@@ -10,7 +10,7 @@
 
 #title()
 
-How much time does it save to skip the dense model matrix? This page times six common operations twice: once with base R, which builds the full matrix first, and once with `xtx`, which works from the design matrix instead. The data have 200,000 rows, the model matrix has 119 columns, and everything runs on one thread.
+How much time does it save to skip the dense model matrix? This page times six common operations twice: once with base R, which builds the full matrix first, and once with `xtx`, which works from the design matrix instead. The data have 200,000 rows, the model matrix has 119 columns, and everything runs on one thread. The answer depends on what the columns are, so there are two models: one with factors, one with numeric variables only.
 
 Each operation is timed in two situations:
 
@@ -19,55 +19,91 @@ Each operation is timed in two situations:
 
 Shorter bars are better.
 
+#calepin.chunk(echo: false, results: "hide")[
+```r
+library(ggplot2)
+ms <- function(x) {
+    x <- trimws(x)
+    as.numeric(sub("[^0-9.]+$", "", x)) * c(ns = 1e-6, "\u00b5s" = 1e-3, us = 1e-3, ms = 1, s = 1e3, m = 6e4)[sub("^[0-9.]+", "", x)]
+}
+starts <- c("From a data frame", "From a prebuilt design matrix")
+# One bar per operation, starting point and package
+bar_chart <- function(res) {
+    res$operation <- factor(res$operation, rev(unique(res$operation)))
+    res$start <- factor(res$start, starts)
+    res$package <- factor(res$package, c("xtx, design matrix", "Base R, dense matrix"))
+    res$label <- paste(format(signif(res$ms, 3), big.mark = ",", drop0trailing = TRUE, trim = TRUE), "ms")
+    ggplot(res, aes(ms, operation, fill = package)) +
+        geom_col(position = position_dodge(width = 0.75), width = 0.7) +
+        geom_text(aes(label = label), position = position_dodge(width = 0.75), hjust = -0.1, size = 4.2, colour = "grey30") +
+        facet_wrap(~ start, scales = "free_x") +
+        scale_x_continuous(expand = expansion(mult = c(0, 0.32))) +
+        scale_fill_manual(values = c("xtx, design matrix" = "#18756d", "Base R, dense matrix" = "#ad481e"),
+                          breaks = c("Base R, dense matrix", "xtx, design matrix")) +
+        labs(x = "Median time, milliseconds", y = NULL, fill = NULL) +
+        theme_minimal(base_size = 16) +
+        theme(legend.position = "top", legend.justification = "left",
+              panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
+              panel.spacing = unit(1.5, "lines"),
+              strip.text = element_text(face = "bold", hjust = 0),
+              axis.text.y = element_text(family = "mono", colour = "grey20"),
+              axis.title = element_text(colour = "grey35"))
+}
+```
+]
+
+= Numeric and factors
+
+The model is `y ~ x * f1 + f2`, with a factor of 50 levels and one of 20. All but two of its 119 columns are factor dummies and their interactions with `x`, so each row has only a few non-zero entries, which `xtx` skips.
+
 #calepin.chunk(
   echo: false,
   results: "render",
   fig-width: "100%",
   fig-device-width: 10,
   fig-device-height: 7.5,
-  fig-alt-text: "Bar chart of the median time in milliseconds of six operations (building the matrix, matrix product, crossprod with a vector, crossprod, weighted group sums, quadratic diagonal), for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix.",
+  fig-alt-text: "Bar chart of the median time in milliseconds of six operations on a model with factors (building the matrix, matrix product, crossprod with a vector, crossprod, weighted group sums, quadratic diagonal), for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix.",
 )[
 ```r
-library(ggplot2)
-# Each results file has base R then xtx, starting from the data, then (but
-# for the construction) the same two from a prebuilt matrix
+# Each results file has base R then xtx, from a data frame, then (but for
+# the construction) the same two from a prebuilt matrix
 ops <- c(construction = "Build the matrix", matmul = "%*%", crossprod_w = "crossprod(D, w)",
          crossprod = "crossprod(D)", colsums = "colSums(w * D, group = )", quadratic = "quadratic_diagonal()")
-ms <- function(x) {
-    x <- trimws(x)
-    as.numeric(sub("[^0-9.]+$", "", x)) * c(ns = 1e-6, "µs" = 1e-3, us = 1e-3, ms = 1, s = 1e3, m = 6e4)[sub("^[0-9.]+", "", x)]
-}
 res <- do.call(rbind, lapply(names(ops), function(f) {
     r <- read.csv(file.path("benchmarks", "results", paste0(f, ".csv")), colClasses = "character")
     data.frame(operation = ops[[f]], ms = ms(r$median),
                package = rep(c("Base R, dense matrix", "xtx, design matrix"), length.out = nrow(r)),
-               start = rep(c("From a data frame", "From a prebuilt design matrix"), each = 2)[seq_len(nrow(r))])
+               start = rep(starts, each = 2)[seq_len(nrow(r))])
 }))
-res$operation <- factor(res$operation, rev(unname(ops)))
-res$start <- factor(res$start, c("From a data frame", "From a prebuilt design matrix"))
-res$package <- factor(res$package, c("xtx, design matrix", "Base R, dense matrix"))
-res$label <- paste(format(signif(res$ms, 3), big.mark = ",", drop0trailing = TRUE, trim = TRUE), "ms")
-ggplot(res, aes(ms, operation, fill = package)) +
-    geom_col(position = position_dodge(width = 0.75), width = 0.7) +
-    geom_text(aes(label = label), position = position_dodge(width = 0.75), hjust = -0.1, size = 4.2, colour = "grey30") +
-    facet_wrap(~ start, scales = "free_x") +
-    scale_x_continuous(expand = expansion(mult = c(0, 0.22))) +
-    scale_fill_manual(values = c("xtx, design matrix" = "#18756d", "Base R, dense matrix" = "#ad481e"),
-                      breaks = c("Base R, dense matrix", "xtx, design matrix")) +
-    labs(x = "Median time, milliseconds", y = NULL, fill = NULL) +
-    theme_minimal(base_size = 16) +
-    theme(legend.position = "top", legend.justification = "left",
-          panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
-          panel.spacing = unit(1.5, "lines"),
-          strip.text = element_text(face = "bold", hjust = 0),
-          axis.text.y = element_text(family = "mono", colour = "grey20"),
-          axis.title = element_text(colour = "grey35"))
+bar_chart(res)
 ```
 ]
 
 For `crossprod(D)`, the design matrix adds up the products of each row's few non-zero entries, instead of all `p^2 / 2` products of the dense row. For `quadratic_diagonal()`, base R builds an `n` by `p` intermediate, where the kernel touches only the non-zero entries of each row. Examples and benchmarks of threads, reuse on new data, sparse matrices and repeated rows are in the #link("recipes/algebra.html")[Algebra recipes].
 
-Other pages have their own benchmarks: #link("fit/fixed_effects.html")[fixed effects], #link("fit/lm_xtx.html#least-squares-with-qr")[least squares], #link("fit/leverage.html")[leverage], #link("fit/standard_errors.html")[standard errors] and #link("recipes/prediction.html")[predictions].
+= Numeric only
+
+The model has 118 numeric variables and an intercept: as many columns, but no zeros to skip. Here `xtx` has nothing to gain, and it is slower than base R on several operations, by a wide margin for group sums and `quadratic_diagonal()`.
+
+#calepin.chunk(
+  echo: false,
+  results: "render",
+  fig-width: "100%",
+  fig-device-width: 10,
+  fig-device-height: 7.5,
+  fig-alt-text: "Bar chart of the median time in milliseconds of the same six operations on a model with numeric variables only, for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix.",
+)[
+```r
+bar_chart(read.csv(file.path("benchmarks", "results", "numeric.csv")))
+```
+]
+
+Two things make up for it:
+
+- *The dense matrix is always available.* `as.matrix(design_matrix())` returns the same matrix as `model.matrix()`, bit for bit, in about the same time (the first pair of bars). When a model is all numeric, build the dense matrix once and use base R on it: nothing is lost.
+- *The same code runs out of core.* A design can be built on a DuckDB table or on Parquet files that do not fit in memory, where there is no dense matrix to fall back on: see #link("out-of-core.html")[Out-of-core data].
+
+Other pages have their own benchmarks: #link("fit/fixed_effects.html")[fixed effects], #link("fit/lm_xtx.html#least-squares")[least squares], #link("fit/leverage.html")[leverage], #link("fit/standard_errors.html")[standard errors] and #link("recipes/prediction.html")[predictions].
 
 = Setup
 
@@ -77,7 +113,7 @@ The benchmark tables report minimum and median elapsed time and `mem_alloc`, the
 
 = Code
 
-These are the scripts themselves, read from `website/benchmarks/` when the site is built. `run.R` runs each benchmark in a fresh R process, on top of `setup.R`, and saves its results as a CSV file, which the chart above reads.
+These are the scripts themselves, read from `website/benchmarks/` when the site is built. `run.R` runs each benchmark in a fresh R process, on top of `setup.R`, and saves its results as a CSV file, which the charts above read.
 
 `setup.R`:
 
@@ -106,6 +142,10 @@ These are the scripts themselves, read from `website/benchmarks/` when the site 
 `quadratic.R`:
 
 #bench-code("quadratic")
+
+`numeric.R`:
+
+#bench-code("numeric")
 
 `run.R`:
 

@@ -1,0 +1,23 @@
+"operation","start","package","ms"
+"Build the dense matrix","From a data frame","Base R, dense matrix",148
+"Build the dense matrix","From a data frame","xtx, design matrix",158
+"%*%","From a data frame","Base R, dense matrix",165
+"%*%","From a data frame","xtx, design matrix",141
+"%*%","From a prebuilt design matrix","Base R, dense matrix",10.1
+"%*%","From a prebuilt design matrix","xtx, design matrix",13.8
+"crossprod(D, w)","From a data frame","Base R, dense matrix",146
+"crossprod(D, w)","From a data frame","xtx, design matrix",152
+"crossprod(D, w)","From a prebuilt design matrix","Base R, dense matrix",11.1
+"crossprod(D, w)","From a prebuilt design matrix","xtx, design matrix",15.8
+"crossprod(D)","From a data frame","Base R, dense matrix",164
+"crossprod(D)","From a data frame","xtx, design matrix",195
+"crossprod(D)","From a prebuilt design matrix","Base R, dense matrix",70.5
+"crossprod(D)","From a prebuilt design matrix","xtx, design matrix",72.1
+"colSums(w * D, group = )","From a data frame","Base R, dense matrix",153
+"colSums(w * D, group = )","From a data frame","xtx, design matrix",416
+"colSums(w * D, group = )","From a prebuilt design matrix","Base R, dense matrix",63.7
+"colSums(w * D, group = )","From a prebuilt design matrix","xtx, design matrix",333
+"quadratic_diagonal()","From a data frame","Base R, dense matrix",266
+"quadratic_diagonal()","From a data frame","xtx, design matrix",1660
+"quadratic_diagonal()","From a prebuilt design matrix","Base R, dense matrix",205
+"quadratic_diagonal()","From a prebuilt design matrix","xtx, design matrix",1600

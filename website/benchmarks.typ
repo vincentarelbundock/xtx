@@ -83,7 +83,7 @@ For `crossprod(D)`, the design matrix adds up the products of each row's few non
 
 = Numeric only
 
-The model has 118 numeric variables and an intercept: as many columns, but no zeros to skip. Here `xtx` has nothing to gain, and it is slower than base R on several operations, by a wide margin for group sums and `quadratic_diagonal()`.
+The model has 118 numeric variables and an intercept: as many columns, but no zeros to skip. Here `xtx` has nothing to gain: the two are close on every operation, each a little ahead on some.
 
 #calepin.chunk(
   echo: false,
@@ -98,9 +98,9 @@ bar_chart(read.csv(file.path("benchmarks", "results", "numeric.csv")))
 ```
 ]
 
-Two things make up for it:
+Two things still set `xtx` apart:
 
-- *The dense matrix is always available.* `as.matrix(design_matrix())` returns the same matrix as `model.matrix()`, bit for bit, in about the same time (the first pair of bars). When a model is all numeric, build the dense matrix once and use base R on it: nothing is lost.
+- *The dense matrix is always available.* `as.matrix(design_matrix())` returns the same matrix as `model.matrix()`, bit for bit, in about the same time (the first pair of bars). Code that needs the dense matrix of a numeric model can build it at no extra cost.
 - *The same code runs out of core.* A design can be built on a DuckDB table or on Parquet files that do not fit in memory, where there is no dense matrix to fall back on: see #link("out-of-core.html")[Out-of-core data].
 
 Other pages have their own benchmarks: #link("fit/fixed_effects.html")[fixed effects], #link("fit/lm_xtx.html#least-squares")[least squares], #link("fit/leverage.html")[leverage], #link("fit/standard_errors.html")[standard errors] and #link("recipes/prediction.html")[predictions].

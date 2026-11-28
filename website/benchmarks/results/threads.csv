@@ -1,4 +1,4 @@
 "expression","min","median","mem_alloc"
-"model.matrix(fo, big)"," 67.7ms","102.6ms","NA"
-"fast_model_matrix(fo, big, threads = 1)","107ms","120.8ms","NA"
-"fast_model_matrix(fo, big, threads = 4)"," 70.3ms"," 93.5ms","NA"
+"model.matrix(fo, big)","57.2ms","62ms","211MB"
+"fast_model_matrix(fo, big, threads = 1)","52.4ms","62.3ms","213MB"
+"fast_model_matrix(fo, big, threads = 4)","52.3ms","57.6ms","213MB"

@@ -1,12 +1,16 @@
 # A purely numeric design: 118 numeric columns and an intercept, as many
 # columns as the design with factors of the other benchmarks. Returns one
 # row per operation, starting point and package: the median time in
-# milliseconds.
+# milliseconds. The last rows are model fits: lm() and glm() against
+# lm_xtx() and glm_xtx() (package xtx.fit).
+library(xtx.fit)
 p <- 118
 num <- as.data.frame(matrix(rnorm(n * p), n, p))
 names(num) <- paste0("x", seq_len(p))
 fn <- reformulate(names(num), "y")
 num$y <- rnorm(n)
+num$yb <- as.integer(num$y + num$x1 > 0)
+fb <- reformulate(names(num)[seq_len(p)], "yb")
 Xn <- model.matrix(fn, num)
 Dn <- design_matrix(fn, num)
 
@@ -18,10 +22,11 @@ base_diagonal <- function(X, V) rowSums((X %*% V) * X)
 
 # Each operation: base R then xtx from the data frame, then (but for the
 # first) base R then xtx from the prebuilt matrix
-time <- function(operation, ..., check = close, iterations = 10) {
+time <- function(operation, ..., check = close, iterations = 10,
+                 start = c("From a data frame", "From a prebuilt design matrix")) {
     res <- bench::mark(..., iterations = iters(iterations), check = check)
     data.frame(operation = operation,
-               start = rep(c("From a data frame", "From a prebuilt design matrix"), each = 2)[seq_len(nrow(res))],
+               start = rep(start, each = 2)[seq_len(nrow(res))],
                package = rep(c("Base R, dense matrix", "xtx, design matrix"), length.out = nrow(res)),
                ms = signif(as.numeric(res$median) * 1000, 3))
 }
@@ -53,4 +58,10 @@ rbind(
          base_diagonal(model.matrix(fn, num), V),
          quadratic_diagonal(design_matrix(fn, num), V),
          base_diagonal(Xn, V),
-         quadratic_diagonal(Dn, V), iterations = 5))
+         quadratic_diagonal(Dn, V), iterations = 5),
+    time("lm()",
+         coef(lm(fn, num)),
+         coef(lm_xtx(fn, num)), start = "Model fits, from a data frame"),
+    time("glm(, binomial)",
+         coef(glm(fb, binomial, num)),
+         coef(glm_xtx(fb, binomial, num)), iterations = 5, start = "Model fits, from a data frame"))

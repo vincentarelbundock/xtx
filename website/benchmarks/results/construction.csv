@@ -1,3 +1,3 @@
 "expression","min","median","mem_alloc"
-"stats::model.matrix","64ms","120.2ms","NA"
-"design_matrix","12.2ms"," 17.6ms","NA"
+"stats::model.matrix","53.5ms","61.2ms","211.1MB"
+"design_matrix","16.2ms","16.5ms"," 31.1MB"

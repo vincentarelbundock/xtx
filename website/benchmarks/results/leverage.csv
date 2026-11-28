@@ -1,4 +1,4 @@
 "expression","min","median","mem_alloc"
-"hatvalues(fit_big)","921.6ms","  1.72s","NA"
-"base_leverage(X, XtXi)","536.1ms","536.06ms","NA"
-"fast_leverage(DX, XtXi)"," 36.7ms"," 38.56ms","NA"
+"hatvalues(fit_big)","  1.45s","  1.47s"," 15.48MB"
+"base_leverage(X, XtXi)","233.61ms","233.61ms","364.69MB"
+"fast_leverage(DX, XtXi)","  7.09ms","  7.24ms","  2.83MB"

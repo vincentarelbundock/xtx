@@ -35,8 +35,11 @@ bench-quick: install install-fit ## Quick check of every published benchmark; re
 
 # DUCKDB_R_HOME: duckdb's own default folder, named explicitly so that it
 # does not print a notice about it (with its path) in the output of the pages.
-website: install install-fit reference ## Build the site into _site/
-	DUCKDB_R_HOME=$$HOME/.duckdb calepin compile website _site
+# GitHub Pages serves docs/ on main: the built site is committed there
+# (.nojekyll: files and folders that start with an underscore are served).
+website: install install-fit reference ## Build the site into docs/ (GitHub Pages)
+	DUCKDB_R_HOME=$$HOME/.duckdb calepin compile website docs
+	touch docs/.nojekyll
 
 serve: ## Serve the built site
-	calepin serve _site --open
+	calepin serve docs --open

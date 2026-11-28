@@ -53,11 +53,11 @@ all.equal(coef(lm(mpg ~ wt + hp + factor(cyl), mtcars)), qr.coef(qr(D), mtcars$m
 #calepin.chunk(echo: false, results: "typst")[
 ```r
 ## (the number of rows, from the results: the run sets it, OLS_BENCH_N)
-ols_n <- unique(read.csv(file.path(normalizePath(file.path(Sys.getenv("XTX_ROOT", "../.."), "bench", "ols")),
-                                   "results.csv"))$n)[1]
+ols_res <- read.csv(file.path(normalizePath(file.path(Sys.getenv("XTX_ROOT", "../.."), "bench", "ols")), "results.csv"))
+ols_n <- unique(ols_res$n)[1]
 cat("The benchmark below compares `qr()` on a design matrix with eight other implementations of least squares, on ",
     format(ols_n, big.mark = ",", scientific = FALSE),
-    " rows and designs from 3 to 401 columns. It runs outside this page, because a fair comparison needs a fresh R process for each method and design: `bench/ols/run.sh` runs it and writes `bench/ols/results.csv`, which the tables below read. The protocol:\n", sep = "")
+    " rows and designs from ", min(ols_res$p), " to ", max(ols_res$p), " columns. It runs outside this page, because a fair comparison needs a fresh R process for each method and design: `bench/ols/run.sh` runs it and writes `bench/ols/results.csv`, which the tables below read. The protocol:\n", sep = "")
 ```
 ]
 
@@ -106,9 +106,11 @@ cat(readLines(file.path(bench_dir, "machine.txt")), sep = "\n")
 ```
 ]
 
-From 21 columns up, `qr()` on a design matrix is the fastest method that matches `lm()` in both comparisons. From formula, with 21 to 119 columns, it is 2 to 11 times faster than the next method, and it uses the least memory, because it never builds the dense matrix. Prebuilt, it is 2 to 7 times faster, though some methods need even less memory, since they read the prebuilt matrix in place. At 401 columns, 21 of them aliased, the only other method that matches `lm()` is `.lm.fit()` (the same routine that `lm()` uses), 45 times slower from formula and 140 times slower prebuilt; the faster alternatives stop with an error, drop the aliased columns, or return a different solution.
+From 20 columns up, `qr()` on a design matrix is the fastest method that matches `lm()` in both comparisons, on every design with a factor. From formula, it is 1.1 to 6 times faster than the next such method, and it uses the least memory, because it never builds the dense matrix. Prebuilt, it is 1.2 to 4 times faster, though some methods need even less memory, since they read the prebuilt matrix in place. The gains are largest when most columns are factor dummies or their interactions, whose zeros the design matrix skips; with many numeric variables and one factor, `qr()` is only slightly ahead (tied prebuilt at 100 columns). On the design with 49 columns, 6 of them aliased, the only other methods that match `lm()` are `speedglm` (3 to 4 times slower) and `.lm.fit()`, the routine that `lm()` uses (6 times slower from formula, 12 times slower prebuilt); the faster alternatives return a different solution or stop with an error.
 
-With 3 to 5 numeric columns, the dense matrix is small and the gains disappear. From formula, `qr()` ties for fastest with 3 columns and is about 4 ms slower than `RcppEigen`'s Cholesky decomposition with 5; `fixest`, which does not build a model frame, uses the least memory. Prebuilt, `RcppEigen` is faster by 1 to 3 ms.
+With numeric variables only, there are no zeros to skip. At 20 columns, `RcppEigen`'s Cholesky decomposition is faster from formula and tied prebuilt; at 50 and 100 columns, `qr()` is 1 to 1.3 times faster than the next method.
+
+With 5 or 6 columns, the dense matrix is small and the gains disappear: `fixest`, which does not build a model frame, is the fastest from formula (by 2 to 5 ms) and usually uses the least memory, and `RcppEigen` is the fastest prebuilt (by 1 to 2 ms).
 
 = On a database
 

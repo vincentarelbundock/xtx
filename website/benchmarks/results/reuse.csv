@@ -1,3 +1,3 @@
 "expression","min","median","mem_alloc"
-"base_model_matrix(batch)","561.7µs","592.6µs","NA"
-"fast_model_matrix(batch)"," 73.4µs"," 76.3µs","NA"
+"base_model_matrix(batch)","294.7µs","319.5µs","224KB"
+"fast_model_matrix(batch)"," 28.7µs"," 29.7µs","625KB"

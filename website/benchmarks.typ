@@ -17,6 +17,8 @@ Each operation is timed in two situations:
 - *From a data frame.* The matrix is built and then used once, as when predicting on a new batch of data.
 - *From a prebuilt design matrix.* The matrix already exists and only the operation is timed, as when the same matrix is used again and again. Base R starts from its own prebuilt dense matrix.
 
+A third panel times model fits: `lm()` and `glm()` against `lm_xtx()` and `glm_xtx()` from `xtx.fit`, and, for the model with factors, predictions on new data, their standard errors and leverage from a fitted `lm()`, against the same quantities computed on the design matrix.
+
 Shorter bars are better.
 
 #calepin.chunk(echo: false, results: "hide")[
@@ -26,7 +28,7 @@ ms <- function(x) {
     x <- trimws(x)
     as.numeric(sub("[^0-9.]+$", "", x)) * c(ns = 1e-6, "\u00b5s" = 1e-3, us = 1e-3, ms = 1, s = 1e3, m = 6e4)[sub("^[0-9.]+", "", x)]
 }
-starts <- c("From a data frame", "From a prebuilt design matrix")
+starts <- c("From a data frame", "From a prebuilt design matrix", "Model fits, from a data frame")
 # One bar per operation, starting point and package
 bar_chart <- function(res) {
     res$operation <- factor(res$operation, rev(unique(res$operation)))
@@ -36,8 +38,8 @@ bar_chart <- function(res) {
     ggplot(res, aes(ms, operation, fill = package)) +
         geom_col(position = position_dodge(width = 0.75), width = 0.7) +
         geom_text(aes(label = label), position = position_dodge(width = 0.75), hjust = -0.1, size = 4.2, colour = "grey30") +
-        facet_wrap(~ start, scales = "free_x") +
-        scale_x_continuous(expand = expansion(mult = c(0, 0.32))) +
+        facet_wrap(~ start, scales = "free", ncol = 1) +
+        scale_x_continuous(expand = expansion(mult = c(0, 0.32)), labels = scales::label_comma()) +
         scale_fill_manual(values = c("xtx, design matrix" = "#18756d", "Base R, dense matrix" = "#ad481e"),
                           breaks = c("Base R, dense matrix", "xtx, design matrix")) +
         labs(x = "Median time, milliseconds", y = NULL, fill = NULL) +
@@ -61,8 +63,8 @@ The model is `y ~ x * f1 + f2`, with a factor of 50 levels and one of 20. All bu
   results: "render",
   fig-width: "100%",
   fig-device-width: 10,
-  fig-device-height: 7.5,
-  fig-alt-text: "Bar chart of the median time in milliseconds of six operations on a model with factors (building the matrix, matrix product, crossprod with a vector, crossprod, weighted group sums, quadratic diagonal), for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix.",
+  fig-device-height: 13,
+  fig-alt-text: "Bar chart of the median time in milliseconds of six operations on a model with factors (building the matrix, matrix product, crossprod with a vector, crossprod, weighted group sums, quadratic diagonal), for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix; and of model fits and post-estimation (lm(), glm(), predictions, their standard errors, leverage) for base R and for xtx and xtx.fit.",
 )[
 ```r
 # Each results file has base R then xtx, from a data frame, then (but for
@@ -73,8 +75,18 @@ res <- do.call(rbind, lapply(names(ops), function(f) {
     r <- read.csv(file.path("benchmarks", "results", paste0(f, ".csv")), colClasses = "character")
     data.frame(operation = ops[[f]], ms = ms(r$median),
                package = rep(c("Base R, dense matrix", "xtx, design matrix"), length.out = nrow(r)),
-               start = rep(starts, each = 2)[seq_len(nrow(r))])
+               start = rep(starts[1:2], each = 2)[seq_len(nrow(r))])
 }))
+# Model fits and what follows them: base R (first row of each file) against
+# xtx and xtx.fit (last row); leverage.csv has a middle row, base R's
+# formula on the prebuilt matrix, left out here
+fits <- c(lm = "lm()", glm = "glm(, binomial)", predict = "predict(fit, newdata)",
+          predict_se = "predict(, se.fit = TRUE)", leverage = "hatvalues()")
+res <- rbind(res, do.call(rbind, lapply(names(fits), function(f) {
+    r <- read.csv(file.path("benchmarks", "results", paste0(f, ".csv")), colClasses = "character")
+    data.frame(operation = fits[[f]], ms = ms(r$median[c(1, nrow(r))]),
+               package = c("Base R, dense matrix", "xtx, design matrix"), start = starts[3])
+})))
 bar_chart(res)
 ```
 ]
@@ -83,15 +95,15 @@ For `crossprod(D)`, the design matrix adds up the products of each row's few non
 
 = Numeric only
 
-The model has 118 numeric variables and an intercept: as many columns, but no zeros to skip. Here `xtx` has nothing to gain: the two are close on every operation, each a little ahead on some.
+The model has 118 numeric variables and an intercept: as many columns, but no zeros to skip. For the matrix operations, `xtx` has nothing to gain: the two are close on every operation, each a little ahead on some. The model fits are another matter: `lm_xtx()` and `glm_xtx()` remain several times faster than `lm()` and `glm()` (the third panel), because they factor the small `p` by `p` cross-product instead of the `n` by `p` matrix. `glm_xtx()` does that once per iteration.
 
 #calepin.chunk(
   echo: false,
   results: "render",
   fig-width: "100%",
   fig-device-width: 10,
-  fig-device-height: 7.5,
-  fig-alt-text: "Bar chart of the median time in milliseconds of the same six operations on a model with numeric variables only, for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix.",
+  fig-device-height: 11,
+  fig-alt-text: "Bar chart of the median time in milliseconds of the same six operations on a model with numeric variables only, for base R on the dense model matrix and for xtx on the design matrix, from a data frame and from a prebuilt design matrix; and of lm() and glm() fits against lm_xtx() and glm_xtx().",
 )[
 ```r
 bar_chart(read.csv(file.path("benchmarks", "results", "numeric.csv")))
@@ -142,6 +154,26 @@ These are the scripts themselves, read from `website/benchmarks/` when the site 
 `quadratic.R`:
 
 #bench-code("quadratic")
+
+`lm.R`:
+
+#bench-code("lm")
+
+`glm.R`:
+
+#bench-code("glm")
+
+`predict.R`:
+
+#bench-code("predict")
+
+`predict_se.R`:
+
+#bench-code("predict_se")
+
+`leverage.R`:
+
+#bench-code("leverage")
 
 `numeric.R`:
 

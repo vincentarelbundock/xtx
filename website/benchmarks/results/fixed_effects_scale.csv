@@ -1,0 +1,13 @@
+"package","dgp","n","k","seconds","reps","mem_mb","status","provisional","kill_s"
+"lm_xtx","balanced",1e+07,10,1.742,3,787.2,"ok",FALSE,3600
+"lm_xtx","balanced",5e+07,10,22.79,3,5981.7,"ok",FALSE,3600
+"lm_xtx (DuckDB)","balanced",1e+07,10,7.67,3,2146.2,"ok",FALSE,3600
+"lm_xtx (DuckDB)","balanced",5e+07,10,47.3,3,5637.3,"ok",FALSE,3600
+"feols","balanced",1e+07,10,3.535,3,3021.9,"ok",FALSE,3600
+"feols","balanced",5e+07,10,17.72,3,14998.3,"ok",FALSE,3600
+"lm_xtx","random",1e+07,10,4.81,3,1243.8,"ok",FALSE,3600
+"lm_xtx","random",5e+07,10,59.18,3,6229.3,"ok",FALSE,3600
+"lm_xtx (DuckDB)","random",1e+07,10,110.3,3,8660.7,"ok",FALSE,3600
+"lm_xtx (DuckDB)","random",5e+07,10,681.3,0,37767.6,"single",FALSE,3600
+"feols","random",1e+07,10,8.47,3,3100.5,"ok",FALSE,3600
+"feols","random",5e+07,10,44.57,3,15392.4,"ok",FALSE,3600

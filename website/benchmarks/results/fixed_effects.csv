@@ -1,65 +1,65 @@
 "package","dgp","n","k","seconds","reps","mem_mb","max_coef_diff","status","provisional","reference","kill_s","ref_kill_s"
-"lm_xtx","balanced",1000,10,0.007,3,2,1.67e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","balanced",10000,10,0.009,3,2.9,2.55e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","balanced",1e+05,10,0.045,3,26.8,8.55e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","balanced",1e+06,10,0.198,3,78.3,2e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","balanced",1000,10,0.135,3,59.8,1.67e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","balanced",10000,10,0.144,3,68.9,2.55e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","balanced",1e+05,10,0.242,3,160.5,8.55e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","balanced",1e+06,10,1.033,3,433.3,2e-14,"ok",FALSE,"ok",1800,1800
-"feols","balanced",1000,10,0.007,3,1.6,0,"ok",FALSE,"ok",1800,1800
-"feols","balanced",10000,10,0.018,3,1.6,0,"ok",FALSE,"ok",1800,1800
-"feols","balanced",1e+05,10,0.081,3,35.9,0,"ok",FALSE,"ok",1800,1800
-"feols","balanced",1e+06,10,0.478,3,298.1,0,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","balanced",1000,10,0.048,3,10.6,2.22e-16,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","balanced",10000,10,0.05,3,13.4,4.44e-16,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","balanced",1e+05,10,0.097,3,36.1,5e-16,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","balanced",1e+06,10,0.605,3,385.1,4.44e-16,"ok",FALSE,"ok",1800,1800
-"lm_xtx","random",1000,10,0.008,3,2,2.89e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","random",10000,10,0.01,3,3.1,1.55e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","random",1e+05,10,0.056,3,28.4,8.1e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","random",1e+06,10,0.471,3,130.1,2.12e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","random",1000,10,0.159,3,56.1,2.89e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","random",10000,10,0.162,3,66.7,1.55e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","random",1e+05,10,0.279,3,162.5,8.1e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","random",1e+06,10,1.423,3,486.8,2.12e-14,"ok",FALSE,"ok",1800,1800
-"feols","random",1000,10,0.006,3,1.6,3.55e-15,"ok",FALSE,"ok",1800,1800
-"feols","random",10000,10,0.011,3,1.6,4.94e-15,"ok",FALSE,"ok",1800,1800
-"feols","random",1e+05,10,0.071,3,29.1,1.82e-14,"ok",FALSE,"ok",1800,1800
-"feols","random",1e+06,10,0.724,3,305.8,2.99e-14,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","random",1000,10,0.4,3,13.9,2.22e-15,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","random",10000,10,0.527,3,18.5,6.22e-15,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","random",1e+05,10,1.295,3,49.8,7.44e-15,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","random",1e+06,10,8.38,3,391.7,2.35e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx","round_robin",1000,10,0.008,3,2,1.11e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","round_robin",10000,10,0.01,3,3.2,9.99e-16,"ok",FALSE,"ok",1800,1800
-"lm_xtx","round_robin",1e+05,10,0.049,3,28.8,1.51e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx","round_robin",1e+06,10,0.252,3,128.5,8.12e-13,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","round_robin",1000,10,0.139,3,56.1,9.99e-16,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","round_robin",10000,10,0.146,3,66.4,9.99e-16,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","round_robin",1e+05,10,0.26,3,167.2,1.51e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","round_robin",1e+06,10,1.235,3,451.1,8.12e-13,"ok",FALSE,"ok",1800,1800
-"feols","round_robin",1000,10,0.006,3,1.5,0,"ok",FALSE,"ok",1800,1800
-"feols","round_robin",10000,10,0.017,3,1.6,3.02e-13,"ok",FALSE,"ok",1800,1800
-"feols","round_robin",1e+05,10,0.805,3,29.1,9.1e-11,"ok",FALSE,"ok",1800,1800
-"feols","round_robin",1e+06,10,22.49,3,305.8,1.56e-06,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","round_robin",1000,10,0.569,3,7.4,1.67e-15,"ok",FALSE,"ok",600,1800
-"dbreg (DuckDB)","round_robin",10000,10,4.964,3,17.5,7.33e-15,"ok",FALSE,"ok",600,1800
+"lm_xtx","balanced",1000,10,0.005,3,2.1,1.67e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","balanced",10000,10,0.006,3,3,2.55e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","balanced",1e+05,10,0.032,3,26.8,8.55e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","balanced",1e+06,10,0.187,3,77,2e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","balanced",1000,10,0.198,3,57.6,1.67e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","balanced",10000,10,0.207,3,66.1,2.55e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","balanced",1e+05,10,0.294,3,130.2,8.55e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","balanced",1e+06,10,0.993,3,416.7,2e-14,"ok",FALSE,"ok",1800,1800
+"feols","balanced",1000,10,0.004,3,1.7,0,"ok",FALSE,"ok",1800,1800
+"feols","balanced",10000,10,0.007,3,1.7,0,"ok",FALSE,"ok",1800,1800
+"feols","balanced",1e+05,10,0.032,3,36,0,"ok",FALSE,"ok",1800,1800
+"feols","balanced",1e+06,10,0.32,3,298.1,0,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","balanced",1000,10,0.036,3,5.6,2.22e-16,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","balanced",10000,10,0.039,3,6.8,4.44e-16,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","balanced",1e+05,10,0.08,3,31,5e-16,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","balanced",1e+06,10,0.514,3,379.8,4.44e-16,"ok",FALSE,"ok",1800,1800
+"lm_xtx","random",1000,10,0.006,3,2.1,2.89e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","random",10000,10,0.008,3,3.3,1.55e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","random",1e+05,10,0.046,3,28.4,8.1e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","random",1e+06,10,0.389,3,129.1,2.12e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","random",1000,10,0.246,3,59,2.89e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","random",10000,10,0.263,3,68,1.55e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","random",1e+05,10,0.416,3,167.9,7.99e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","random",1e+06,10,9.77,3,945.8,2.11e-14,"ok",FALSE,"ok",1800,1800
+"feols","random",1000,10,0.005,3,1.7,3.55e-15,"ok",FALSE,"ok",1800,1800
+"feols","random",10000,10,0.009,3,1.7,4.94e-15,"ok",FALSE,"ok",1800,1800
+"feols","random",1e+05,10,0.053,3,29.2,1.82e-14,"ok",FALSE,"ok",1800,1800
+"feols","random",1e+06,10,0.56,3,305.7,2.99e-14,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","random",1000,10,0.327,3,6.6,2.22e-15,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","random",10000,10,0.401,3,10.5,6.22e-15,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","random",1e+05,10,0.903,3,44.1,7.44e-15,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","random",1e+06,10,5.896,3,507,2.35e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx","round_robin",1000,10,0.006,3,2.1,1.11e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","round_robin",10000,10,0.007,3,3.4,9.99e-16,"ok",FALSE,"ok",1800,1800
+"lm_xtx","round_robin",1e+05,10,0.044,3,28.9,1.51e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx","round_robin",1e+06,10,0.241,3,127.3,8.12e-13,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","round_robin",1000,10,0.245,3,59,9.99e-16,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","round_robin",10000,10,0.258,3,67.8,9.99e-16,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","round_robin",1e+05,10,0.398,3,161.3,1.51e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","round_robin",1e+06,10,1.671,3,572.4,8.13e-13,"ok",FALSE,"ok",1800,1800
+"feols","round_robin",1000,10,0.005,3,1.7,0,"ok",FALSE,"ok",1800,1800
+"feols","round_robin",10000,10,0.013,3,1.7,3.02e-13,"ok",FALSE,"ok",1800,1800
+"feols","round_robin",1e+05,10,0.7,3,29.2,9.1e-11,"ok",FALSE,"ok",1800,1800
+"feols","round_robin",1e+06,10,19.88,3,305.6,1.56e-06,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","round_robin",1000,10,0.25,3,6.6,1.67e-15,"ok",FALSE,"ok",600,1800
+"dbreg (DuckDB)","round_robin",10000,10,3.429,3,9.9,7.33e-15,"ok",FALSE,"ok",600,1800
 "dbreg (DuckDB)","round_robin",1e+05,10,NA,NA,NA,NA,"killed",FALSE,"ok",600,1800
 "dbreg (DuckDB)","round_robin",1e+06,10,NA,NA,NA,NA,"skipped",FALSE,"ok",600,1800
-"lm_xtx","low_mobility",1000,10,0.007,3,2,6.11e-16,"ok",FALSE,"ok",1800,1800
-"lm_xtx","low_mobility",10000,10,0.011,3,3.1,4.66e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx","low_mobility",1e+05,10,0.051,3,28.9,1.08e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx","low_mobility",1e+06,10,0.293,3,129.6,4.17e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","low_mobility",1000,10,0.141,3,56.2,6.66e-16,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","low_mobility",10000,10,0.146,3,66.5,4.66e-15,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","low_mobility",1e+05,10,0.254,3,165.7,1.08e-14,"ok",FALSE,"ok",1800,1800
-"lm_xtx (DuckDB)","low_mobility",1e+06,10,1.031,3,514.1,4.17e-14,"ok",FALSE,"ok",1800,1800
-"feols","low_mobility",1000,10,0.006,3,1.6,8.05e-13,"ok",FALSE,"ok",1800,1800
-"feols","low_mobility",10000,10,0.018,3,1.6,1.25e-13,"ok",FALSE,"ok",1800,1800
-"feols","low_mobility",1e+05,10,0.165,3,29.1,3.14e-14,"ok",FALSE,"ok",1800,1800
-"feols","low_mobility",1e+06,10,2.202,3,305.8,9.95e-14,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","low_mobility",1000,10,3.302,3,12.4,1.11e-15,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","low_mobility",10000,10,5.758,3,17.9,4.33e-15,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","low_mobility",1e+05,10,14.95,3,50.8,1.03e-14,"ok",FALSE,"ok",1800,1800
-"dbreg (DuckDB)","low_mobility",1e+06,10,148.8,0,402.2,7.61e-15,"single",FALSE,"ok",1800,1800
+"lm_xtx","low_mobility",1000,10,0.006,3,2.1,6.11e-16,"ok",FALSE,"ok",1800,1800
+"lm_xtx","low_mobility",10000,10,0.008,3,3.1,4.66e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx","low_mobility",1e+05,10,0.043,3,29,1.08e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx","low_mobility",1e+06,10,0.261,3,127.8,4.17e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","low_mobility",1000,10,0.241,3,58.8,6.66e-16,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","low_mobility",10000,10,0.254,3,67.7,4.66e-15,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","low_mobility",1e+05,10,0.38,3,157.9,1.08e-14,"ok",FALSE,"ok",1800,1800
+"lm_xtx (DuckDB)","low_mobility",1e+06,10,1.416,3,497.4,4.15e-14,"ok",FALSE,"ok",1800,1800
+"feols","low_mobility",1000,10,0.005,3,1.7,8.05e-13,"ok",FALSE,"ok",1800,1800
+"feols","low_mobility",10000,10,0.016,3,1.7,1.25e-13,"ok",FALSE,"ok",1800,1800
+"feols","low_mobility",1e+05,10,0.143,3,29.1,3.14e-14,"ok",FALSE,"ok",1800,1800
+"feols","low_mobility",1e+06,10,1.89,3,305.6,9.95e-14,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","low_mobility",1000,10,2.872,3,5.3,1.11e-15,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","low_mobility",10000,10,4.209,3,9.8,4.33e-15,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","low_mobility",1e+05,10,10.06,3,44.1,1.03e-14,"ok",FALSE,"ok",1800,1800
+"dbreg (DuckDB)","low_mobility",1e+06,10,84.42,3,508.1,7.61e-15,"ok",FALSE,"ok",1800,1800

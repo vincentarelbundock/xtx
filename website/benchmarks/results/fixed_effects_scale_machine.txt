@@ -1,0 +1,5 @@
+CPU: 13th Gen Intel(R) Core(TM) i9-13900K (one core, one thread)
+R version 4.5.3 (2026-03-11)
+Packages: xtx 0.0.1, xtx.fit 0.0.1, duckdb 2.0.1, fixest 0.14.2
+Limits: larger sizes skipped after 600 s (FE_BENCH_SCALE_LIMIT); cells stopped after 3600 s (FE_BENCH_SCALE_KILL)
+Run: 2026-11-28 

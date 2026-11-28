@@ -1,3 +1,3 @@
 "expression","min","median","mem_alloc"
-"glm()","  4.89s","  4.99s","NA"
-"glm_xtx()","144.58ms","185.43ms","NA"
+"glm()","  5.92s","  6s","  2.34GB"
+"glm_xtx()","119.81ms","161ms","233.05MB"

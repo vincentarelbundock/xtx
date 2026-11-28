@@ -66,7 +66,15 @@
 #'   scan that computes `X'X`, and kept for `qr.coef(qr, y)` on that column.
 #' @return An object of class `"xtx_qr"`: a list with `design` (`x`),
 #'   `R` (the `p` by `p` upper triangular factor, columns in pivoted
-#'   order), `rank`, `pivot` and `tol`.
+#'   order), `rank`, `pivot` and `tol`. For a remote design, also the sums
+#'   that its scan computed: `weight_sum` (the sum of the weights of the
+#'   rows: their number for an unscaled design) and, with `y`,
+#'   `response_ss` (the sum of squares of `y`). `qr.coef()` on a remote design returns the
+#'   coefficients with an attribute `"moments"`: a list with `b` (the
+#'   coefficients of the kept columns), `h` (their `X'y`) and `G` (their
+#'   `X'X`), from which sums of squares follow without another pass over
+#'   the rows (`y'y - sum(b * h)` is the residual sum of squares); these
+#'   are those of the centered design when the factor is.
 #' @examples
 #' set.seed(1)
 #' d <- data.frame(y = rnorm(100), x = rnorm(100), f = gl(4, 25))
@@ -267,7 +275,8 @@ xtx_qr_centered <- function(ch, G, Tm, xs, mc, Y = NULL) {
     ## to the end. Anything else would be a bug, not a design to fall back
     ## on silently.
     if (is.unsorted(keep)) stop("internal error: the kept columns are not in order", call. = FALSE)
-    if (!xtx_uncenter_ok(Tm, keep, al)) return(ch)
+    ## (not when a kept column of X~ uses an aliased column of X)
+    if (length(al) && any(Tm[al, keep] != 0)) return(ch)
     Rt <- tryCatch(chol(unname(mc$xtx[keep, keep, drop = FALSE])), error = function(e) NULL)
     if (is.null(Rt)) return(ch)
     R11 <- Rt %*% backsolve(Tm[keep, keep, drop = FALSE], diag(k))
@@ -281,15 +290,6 @@ xtx_qr_centered <- function(ch, G, Tm, xs, mc, Y = NULL) {
                         xty_of = if (!is.null(mc$xty)) xtx_column_key(Y))
     ch
 }
-
-## Can a fit on the centered design X~ = X T be mapped back to X (qr():
-## xtx_qr_centered(); FE: design_uncenter() of xtx.fit)? Not when a kept column of X~
-## uses an aliased column of X (T[aliased, kept] not zero).
-xtx_uncenter_ok <- function(Tm, keep, al) !(length(al) && length(keep) && any(Tm[al, keep] != 0))
-
-## A covariance (or bread) of the coefficients of X~ = X T mapped back to
-## those of X: T V T' (Tk: T on the kept columns).
-xtx_uncenter_cov <- function(Tk, V) Tk %*% V %*% t(Tk)
 
 ## The remote design with numeric variables shifted (their SQL).
 xtx_shifted <- function(x, shift) {
@@ -377,7 +377,47 @@ xtx_center_shift <- function(stats_frame, proto_frame, build, p) {
     Tm[lower.tri(Tm)] <- 0
     Tm[abs(Tm) < 1e-10 * ts] <- 0
     diag(Tm) <- 1
-    list(shift = shift, T = Tm)
+    list(shift = shift, T = xtx_center_exact(Tm, shift, proto, build, q, attr(X0, "assign"), tt))
+}
+
+## T of xtx_center_shift() to rounding in every entry. The least squares
+## solve above finds each column of T to about 1e-16 of its largest entry
+## only: with x and z near 1e7, the column of x:z has an entry near 1e14
+## and entries near 1e7, which come out with nine digits, and coefficients
+## mapped back with them (b = T b~) shift the fitted values. But T is
+## known in closed form up to constants: the column of a term with shifted
+## variables A is the product of (v_a - s_a) over A, so its entry on a
+## column of a term with variables B is a constant times the product of
+## the s_a, a in A but not in B. The constants are T at unit shifts (a
+## well scaled solve, with the factorization `q` of the prototype design),
+## the products come from the terms (`assign`: the term of each column).
+## Returns `Tm` itself when the terms do not describe the columns, or when
+## the two disagree beyond the accuracy of `Tm`.
+xtx_center_exact <- function(Tm, shift, proto, build, q, assign, tt) {
+    p <- ncol(Tm)
+    fac <- if (!is.null(tt)) attr(tt, "factors")
+    if (is.null(assign) || length(assign) != p || !is.matrix(fac) || max(assign) > ncol(fac)) return(Tm)
+    unit <- proto
+    for (nm in names(shift)) unit[[nm]] <- proto[[nm]] - 1
+    X1 <- tryCatch(as.matrix(build(unit)), error = function(e) NULL)
+    if (is.null(X1) || ncol(X1) != p) return(Tm)
+    K <- unname(qr.coef(q, X1))
+    if (!all(is.finite(K))) return(Tm)
+    ## the shifted variables of each term (0: the intercept, none), and the
+    ## product of the shifts of those a term has and another lacks
+    vars <- lapply(c(0L, seq_len(ncol(fac))), function(t) {
+        if (t == 0L) character(0) else intersect(rownames(fac)[fac[, t] > 0], names(shift))
+    })
+    nt <- length(vars)
+    St <- matrix(1, nt, nt)
+    for (j in seq_len(nt)) for (i in seq_len(nt)) St[i, j] <- prod(shift[setdiff(vars[[j]], vars[[i]])])
+    K[abs(K) < 1e-10] <- 0
+    Tx <- K * St[assign + 1L, assign + 1L, drop = FALSE]
+    Tx[lower.tri(Tx)] <- 0
+    diag(Tx) <- 1
+    ts <- matrix(pmax(1, apply(abs(Tm), 2L, max)), p, p, byrow = TRUE)
+    if (!all(is.finite(Tx)) || any(abs(Tx - Tm) > 1e-6 * ts)) return(Tm)
+    Tx
 }
 
 ## Centering of the numeric variables of an in-memory design (see
@@ -647,7 +687,8 @@ xtx_qr_coef <- function(qr, Y, steps = 3L) {
             return(cc$T %*% bt)
         }
         b <- cc$T %*% bt
-        ## the moments of the solution, for sums of squares (design_wls() of xtx.fit)
+        ## the moments of the solution, for sums of squares without a pass
+        ## over the rows (see `qr.coef()` in ?design_qr)
         attr(b, "moments") <- list(b = bt, h = ht, G = crossprod(cc$Rt))
         return(b)
     }
@@ -662,25 +703,6 @@ xtx_qr_coef <- function(qr, Y, steps = 3L) {
     if (xtx_qr_kappa2(R11) > 64) b <- xtx_qr_refine(D, R11, keep, b, Y, qr$G, h, steps)
     if (!is.null(qr$G)) attr(b, "moments") <- list(b = b, h = h[keep, , drop = FALSE], G = qr$G[keep, keep, drop = FALSE])
     b
-}
-
-## Iterative refinement, the one driver of qr() (xtx_qr_refine()) and of
-## fits with fixed effects (xf_fe_refine() of xtx.fit): up to `steps` times, the
-## residual of the current solution (`residual(sol)`: a pass over the rows,
-## or the moments already computed) and the corrected solution
-## (`correct(sol, r)`, list(sol, ...): `sol` and what the stopping rule
-## needs); stops after a step when stop(step, r, it) is TRUE (each caller's
-## rule). Returns list(sol, r = the residual the last step started from
-## (NULL without steps), stopped).
-xtx_refine <- function(sol, residual, correct, steps, stop = function(step, r, it) FALSE) {
-    r <- NULL
-    for (it in seq_len(steps)) {
-        r <- residual(sol)
-        step <- correct(sol, r)
-        sol <- step$sol
-        if (stop(step, r, it)) return(list(sol = sol, r = r, stopped = TRUE))
-    }
-    list(sol = sol, r = r, stopped = FALSE)
 }
 
 ## Iterative refinement of b, the solution of R11'R11 b = X'Y for the
@@ -699,18 +721,15 @@ xtx_qr_refine <- function(D, R11, keep, b, Y, G = NULL, h = NULL, steps = 3L) {
     residual <- function(b) {
         if (!is.null(G)) h - G %*% full(b) else xtx_p_crossprod(D, Y - xtx_p_mult(D, full(b)))
     }
-    correct <- function(b, g) {
-        db <- xtx_qr_bs(R11, xtx_qr_bs(R11, g[keep, , drop = FALSE], transpose = TRUE))
-        list(sol = b + db, db = db)
-    }
     last <- Inf
-    stop <- function(step, g, it) {
-        size <- max(abs(step$db)) / max(abs(step$sol), .Machine$double.xmin)
-        if (!(size > 64 * .Machine$double.eps) || size > 0.25 * last) return(TRUE)
-        last <<- size
-        FALSE
+    for (it in seq_len(steps)) {
+        db <- xtx_qr_bs(R11, xtx_qr_bs(R11, residual(b)[keep, , drop = FALSE], transpose = TRUE))
+        b <- b + db
+        size <- max(abs(db)) / max(abs(b), .Machine$double.xmin)
+        if (!(size > 64 * .Machine$double.eps) || size > 0.25 * last) break
+        last <- size
     }
-    xtx_refine(b, residual, correct, steps, stop)$sol
+    b
 }
 
 ## The result as a vector or a matrix like `y`, with row names `rows` and

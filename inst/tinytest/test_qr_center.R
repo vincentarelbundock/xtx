@@ -88,3 +88,22 @@ q <- qr(design_matrix(y ~ xc * f1 + xd, d0))
 expect_null(q$centered)
 q <- qr(design_matrix(y ~ xb * xs, d0))
 expect_false(is.null(q$centered))
+
+# design_center(): the transform T (X~ = X T) is exact in every entry. With
+# x and z near 1e7, the column of x:z has an entry near 1e14 (the product
+# of the shifts) and entries near 1e7 (minus each shift): products of the
+# shifts, not their least squares estimates, which would give the small
+# ones nine digits (and shift the fitted values of coefficients mapped
+# back with them).
+set.seed(7)
+dt <- data.frame(x = 1e7 + rnorm(500), z = 1e7 + 10 * rnorm(500), f = gl(2, 250))
+Xt <- design_matrix(~ x * z + f, dt)
+Tm <- design_center(Xt)$T
+cn <- colnames(Xt)
+sx <- -Tm[1L, match("x", cn)]
+sz <- -Tm[1L, match("z", cn)]
+j <- match("x:z", cn)
+expect_true(abs(sx - 1e7) < 1 && abs(sz - 1e7) < 10)
+expect_equal(Tm[match("x", cn), j], -sz, tolerance = 1e-13)
+expect_equal(Tm[match("z", cn), j], -sx, tolerance = 1e-13)
+expect_equal(Tm[1L, j], sx * sz, tolerance = 1e-13)

@@ -56,7 +56,15 @@ as in \code{\link[=solve.qr]{solve.qr()}}.}
 \value{
 An object of class \code{"xtx_qr"}: a list with \code{design} (\code{x}),
 \code{R} (the \code{p} by \code{p} upper triangular factor, columns in pivoted
-order), \code{rank}, \code{pivot} and \code{tol}.
+order), \code{rank}, \code{pivot} and \code{tol}. For a remote design, also the sums
+that its scan computed: \code{weight_sum} (the sum of the weights of the
+rows: their number for an unscaled design) and, with \code{y},
+\code{response_ss} (the sum of squares of \code{y}). \code{qr.coef()} on a remote design returns the
+coefficients with an attribute \code{"moments"}: a list with \code{b} (the
+coefficients of the kept columns), \code{h} (their \verb{X'y}) and \code{G} (their
+\verb{X'X}), from which sums of squares follow without another pass over
+the rows (\verb{y'y - sum(b * h)} is the residual sum of squares); these
+are those of the centered design when the factor is.
 }
 \description{
 \code{qr(x)} decomposes a \code{design_matrix} as \verb{X P = Q R} without forming the

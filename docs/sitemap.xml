@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://vincentarelbundock.github.io/xtx/architecture.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/benchmarks.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/fit/fixed_effects.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/fit/glm_xtx.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/fit/leverage.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/fit/lm_xtx.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/fit/standard_errors.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/operations.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/out-of-core.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/recipes/algebra.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/recipes/package-developers.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/recipes/prediction.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference-fit/glm_xtx.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference-fit/lm_xtx.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference-fit/remote_fits.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/column_arithmetic.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_algebra.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_arithmetic.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_column.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_frame.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_groups.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_matrix.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_parts.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_patterns.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_qr.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_relation.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/design_remote.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/sparse.html</loc></url>
+  <url><loc>https://vincentarelbundock.github.io/xtx/reference/sub-.xtx_matrix.html</loc></url>
+</urlset>
